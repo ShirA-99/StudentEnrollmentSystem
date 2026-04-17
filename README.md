@@ -75,7 +75,6 @@ If Git tells you the branch does not exist locally yet, that is normal. `git che
 
 ## Project Structure
 
-The project is now flat at the repository root so everyone works in the same top-level app instead of a nested project folder.
 
 Main working folders:
 
