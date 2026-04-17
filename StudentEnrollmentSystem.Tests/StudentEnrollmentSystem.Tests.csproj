@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\StudentEnrollmentSystem\StudentEnrollmentSystem.csproj" />
+    <ProjectReference Include="..\StudentEnrollmentSystem.csproj" />
   </ItemGroup>
 
 </Project>

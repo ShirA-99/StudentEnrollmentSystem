@@ -1,6 +1,6 @@
 # Student Enrollment System
 
-ASP.NET Core MVC student system prepared as the shared team base, with the enrollment and add/drop module already completed and ready for the rest of the team to extend.
+ASP.NET Core MVC student system prepared as the shared base project for the whole team. The enrollment and add/drop module is already in place, and the other members can now build their own modules on top of the same project structure.
 
 ## Current System
 
@@ -20,38 +20,90 @@ ASP.NET Core MVC student system prepared as the shared team base, with the enrol
 - `chloe@student.demo`
 - Password for all accounts: `Pass123$`
 
-## Team Setup
+## Team Branches
 
-Each member should work from the same shared base project and use their own feature branch.
+The team branches have already been prepared from `main`.
 
-Suggested branch ownership:
+- `main` - shared base branch
+- `feature/enrollment-add-drop` - enrollment and add/drop
+- `feature/enquiry-evaluation` - enquiry and student evaluation
+- `feature/payment` - payment and payment history
+- `feature/account` - account management
+- `feature/statements` - statements
 
-- You / team lead: `feature/enrollment-add-drop`
-- Member 2: `feature/enquiry-evaluation`
-- Member 3: `feature/payment`
-- Member 4: `feature/account`
-- Member 5: `feature/statements`
+Each member should work only in their assigned branch.
 
-Suggested workflow:
+## Before You Start
 
-1. Clone the repository.
-2. Create or switch to your assigned branch.
-3. Pull the latest changes from `main` before starting work.
-4. Commit regularly with clear messages.
-5. Push your branch and open a pull request back into `main`.
+If you have never used GitHub before, follow this order:
 
-## Local Prerequisites
+1. Create a GitHub account: https://github.com/signup
+2. Install Git for Windows: https://git-scm.com/download/win
+3. Install the .NET 10 SDK: https://dotnet.microsoft.com/en-us/download/dotnet/10.0
+4. Install SQL Server LocalDB or SQL Server Express:
+   - SQL Server Express: https://www.microsoft.com/en-us/sql-server/sql-server-downloads
+5. Install Visual Studio Code if needed: https://code.visualstudio.com/
+6. Optional SQL extension for VS Code:
+   - SQL Server (mssql): https://marketplace.visualstudio.com/items?itemName=ms-mssql.mssql
 
-Each member should install the following before running the project:
+## Clone The Project
 
-- .NET SDK 10
-- SQL Server LocalDB or SQL Server Express
-- Visual Studio Code or Visual Studio
+Only do this once on your machine.
 
-Optional but useful:
+```powershell
+git clone https://github.com/ShirA-99/StudentEnrollmentSystem.git
+cd StudentEnrollmentSystem
+```
 
-- SQL Server extension tools for viewing the database
-- GitHub Desktop or Git CLI
+## Get Your Branch
+
+After cloning, switch to your assigned branch.
+
+Examples:
+
+```powershell
+git fetch origin
+git checkout feature/enquiry-evaluation
+```
+
+```powershell
+git fetch origin
+git checkout feature/payment
+```
+
+If Git tells you the branch does not exist locally yet, that is normal. `git checkout` will create the local copy from GitHub.
+
+## Project Structure
+
+The project is now flat at the repository root so everyone works in the same top-level app instead of a nested project folder.
+
+Main working folders:
+
+- `Controllers` - one controller area per feature
+- `Views` - feature views
+- `Models` - shared entity models
+- `ViewModels` - UI-specific models
+- `Services` - business logic
+- `Data` - database context, seed data, and migrations
+- `wwwroot` - static assets
+- `StudentEnrollmentSystem.Tests` - automated tests
+
+Prepared member folders and placeholders:
+
+- `Controllers/EnrollmentController.cs`
+- `Controllers/AddDropController.cs`
+- `Controllers/EnquiryController.cs`
+- `Controllers/EvaluationController.cs`
+- `Controllers/PaymentController.cs`
+- `Controllers/StatementController.cs`
+- `Controllers/AccountController.cs`
+- `Views/Enrollment`
+- `Views/AddDrop`
+- `Views/Enquiry`
+- `Views/Evaluation`
+- `Views/Payment`
+- `Views/Statement`
+- `Views/Account`
 
 ## Database Setup
 
@@ -61,67 +113,77 @@ Default connection string:
 
 `Server=(localdb)\MSSQLLocalDB;Database=StudentEnrollmentSystemDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True`
 
-If your machine uses another SQL Server instance such as `.\SQLEXPRESS`, update `DefaultConnection` in:
+If your machine uses SQL Server Express or another SQL Server instance instead, update `DefaultConnection` in:
 
-- `StudentEnrollmentSystem/appsettings.json`
-- `StudentEnrollmentSystem/appsettings.Development.json`
+- `appsettings.json`
+- `appsettings.Development.json`
 
 The app applies migrations and seeds demo data automatically on startup.
 
 ## First Run
 
-From the project root, run:
+Run these commands from the repository root:
 
 ```powershell
 dotnet restore
 dotnet build StudentEnrollmentSystem.slnx
 dotnet test StudentEnrollmentSystem.slnx
-dotnet run --project StudentEnrollmentSystem\StudentEnrollmentSystem.csproj
+dotnet run --project .\StudentEnrollmentSystem.csproj
 ```
 
 If the app fails to start with a database connection error, check:
 
 - SQL Server LocalDB is installed
 - the `MSSQLLocalDB` instance exists
-- your connection string matches your local SQL Server instance
+- your connection string matches your SQL Server instance
 
-## Git Commands
+## Everyday Git Workflow
 
-Create and switch to your branch:
+Use this every time before starting work:
 
 ```powershell
 git checkout main
-git pull
-git checkout -b feature/your-branch-name
+git pull origin main
+git checkout your-branch-name
+git merge main
 ```
 
-Commit and push:
+Example:
+
+```powershell
+git checkout main
+git pull origin main
+git checkout feature/account
+git merge main
+```
+
+After making changes:
 
 ```powershell
 git add .
-git commit -m "Implement feature updates"
-git push -u origin feature/your-branch-name
+git commit -m "Describe your changes"
+git push
 ```
 
-Keep your branch updated with `main`:
+## When Your Module Is Ready
 
-```powershell
-git checkout main
-git pull
-git checkout feature/your-branch-name
-git merge main
-```
+1. Push your branch to GitHub.
+2. Open the GitHub repository in the browser.
+3. GitHub will usually show a button to create a Pull Request.
+4. Open the Pull Request into `main`.
+5. Wait for review before merging.
 
 ## Useful Commands
 
 - Build: `dotnet build StudentEnrollmentSystem.slnx`
 - Test: `dotnet test StudentEnrollmentSystem.slnx`
-- Run app: `dotnet run --project StudentEnrollmentSystem/StudentEnrollmentSystem.csproj`
-- Add migration: `dotnet dotnet-ef migrations add <MigrationName> --project StudentEnrollmentSystem/StudentEnrollmentSystem.csproj --startup-project StudentEnrollmentSystem/StudentEnrollmentSystem.csproj --output-dir Data/Migrations`
+- Run app: `dotnet run --project .\StudentEnrollmentSystem.csproj`
+- Add migration: `dotnet dotnet-ef migrations add <MigrationName> --project .\StudentEnrollmentSystem.csproj --startup-project .\StudentEnrollmentSystem.csproj --output-dir Data/Migrations`
 
 ## Notes For Team Members
 
-- Reuse the existing shared models and database context instead of creating duplicate student or semester tables.
-- Keep each feature inside its own controller and view folder where possible.
-- Do not change another member's branch directly.
-- Open a pull request when your module is ready so it can be reviewed and merged cleanly.
+- Reuse the shared models and `ApplicationDbContext` instead of creating duplicate tables.
+- Keep your work inside your own controller and view folders as much as possible.
+- Do not commit directly into another member's branch.
+- Pull from `main` regularly so your branch stays updated.
+- If you are unsure where your feature should go, start from the placeholder controller and matching view folder already prepared for you.
