@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Student Enrollment System";
+}
+
+<section class="rounded-4 border shadow-sm p-4 p-lg-5 mb-4 bg-white">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge text-bg-primary mb-3">Team Base System</span>
+            <h1 class="display-5 fw-semibold mb-3">Student Enrollment System for the team project</h1>
+            <p class="lead text-secondary mb-4">
+                This system uses ASP.NET Core MVC, ASP.NET Identity, SQL Server LocalDB, and seeded academic data so the
+                rest of the team can continue building on one shared foundation.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Open Enrollment</a>
+                <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Add/Drop</a>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 bg-body-tertiary shadow-sm">
+                <div class="card-body">
+                    <h2 class="h5">Demo login accounts</h2>
+                    <p class="text-secondary small mb-3">Use any of these to test the system locally.</p>
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item px-0"><strong>Alice:</strong> alice@student.demo</li>
+                        <li class="list-group-item px-0"><strong>Bob:</strong> bob@student.demo</li>
+                        <li class="list-group-item px-0"><strong>Chloe:</strong> chloe@student.demo</li>
+                        <li class="list-group-item px-0"><strong>Password:</strong> Pass123$</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h5">Completed Module</h2>
+                <p class="text-secondary mb-0">
+                    Course enrollment, add/drop management, registration history, timetable clash checks, and seat-capacity validation.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h5">Shared team foundation</h2>
+                <p class="text-secondary mb-0">
+                    Identity, database context, student profile, semester, course, section, and audit entities are ready for the other members.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h5">Recommended GitHub flow</h2>
+                <p class="text-secondary mb-0">
+                    Keep this baseline in <code>main</code>, then let each member work on their own feature branch and merge through pull requests.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>

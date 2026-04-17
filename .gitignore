@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+.vscode/
+TestResults/
+*.user
+*.suo
+*.cache
+*.dbmdl
+*.pdb
+*.tmp
+*.log
+*.nupkg
+*.snupkg
+.DS_Store

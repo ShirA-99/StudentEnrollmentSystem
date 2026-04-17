@@ -1,0 +1,63 @@
+@model EnrollmentIndexViewModel
+@{
+    ViewData["Title"] = "Online Enrollment";
+}
+
+<section class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Online Enrollment</h1>
+        <p class="text-secondary mb-0">@Model.StudentName (@Model.StudentNumber) | @Model.SemesterName</p>
+        <p class="text-secondary mb-0">Registration window: @Model.RegistrationWindow</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Go to Add/Drop</a>
+</section>
+
+@if (!Model.AvailableSections.Any())
+{
+    <div class="alert alert-info">
+        No additional sections are currently available. You may already be enrolled, or the remaining sections are full.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Course</th>
+                            <th>Section</th>
+                            <th>Schedule</th>
+                            <th>Instructor</th>
+                            <th>Seats Left</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.AvailableSections)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.CourseCode</div>
+                                <div class="text-secondary small">@item.CourseTitle</div>
+                                <div class="text-secondary small">@item.CreditHours credit hours</div>
+                            </td>
+                            <td>@item.SectionCode</td>
+                            <td class="small">@item.ScheduleSummary</td>
+                            <td>@item.InstructorName</td>
+                            <td>@item.SeatsRemaining</td>
+                            <td class="text-end">
+                                <form asp-action="Enroll" method="post">
+                                    <input type="hidden" name="sectionId" value="@item.SectionId" />
+                                    <button type="submit" class="btn btn-primary btn-sm">Enroll</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

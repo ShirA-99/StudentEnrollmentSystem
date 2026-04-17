@@ -1,0 +1,56 @@
+@model AddDropHistoryViewModel
+@{
+    ViewData["Title"] = "Add/Drop History";
+}
+
+<section class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Add/Drop History</h1>
+        <p class="text-secondary mb-0">@Model.StudentName</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-action="Index">Back to Add/Drop</a>
+</section>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        @if (!Model.HistoryItems.Any())
+        {
+            <div class="p-4 text-secondary">No add/drop history is available for this student yet.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Action</th>
+                            <th>Course</th>
+                            <th>Section</th>
+                            <th>Timestamp</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.HistoryItems)
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger")">
+                                    @item.ActionTypeLabel
+                                </span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@item.CourseCode</div>
+                                <div class="text-secondary small">@item.CourseTitle</div>
+                            </td>
+                            <td>@item.SectionCode</td>
+                            <td>@item.ActionAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Remarks) ? "-" : item.Remarks)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
