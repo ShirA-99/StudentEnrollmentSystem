@@ -13,14 +13,18 @@ public class EnrollmentService(ApplicationDbContext context)
         var semester = await GetActiveSemesterAsync();
 
         var activeEnrollments = await context.EnrollmentRecords
+            .AsNoTracking()
+            .Include(record => record.CourseSection)
+                .ThenInclude(section => section.Course)
+            .Include(record => record.CourseSection)
+                .ThenInclude(section => section.Meetings)
             .Where(record => record.StudentProfileId == student.Id &&
                              record.Status == EnrollmentStatus.Enrolled &&
                              record.CourseSection.SemesterId == semester.Id)
-            .Select(record => new { record.CourseSectionId, record.CourseSection.CourseId })
             .ToListAsync();
 
         var activeSectionIds = activeEnrollments.Select(record => record.CourseSectionId).ToHashSet();
-        var activeCourseIds = activeEnrollments.Select(record => record.CourseId).ToHashSet();
+        var activeCourseIds = activeEnrollments.Select(record => record.CourseSection.CourseId).ToHashSet();
 
         var availableSections = await context.CourseSections
             .AsNoTracking()
@@ -34,33 +38,51 @@ public class EnrollmentService(ApplicationDbContext context)
             .ThenBy(section => section.SectionCode)
             .ToListAsync();
 
+        var latestAudit = await context.AddDropAudits
+            .AsNoTracking()
+            .Include(audit => audit.CourseSection)
+                .ThenInclude(section => section.Course)
+            .Where(audit => audit.StudentProfileId == student.Id)
+            .OrderByDescending(audit => audit.ActionAtUtc)
+            .FirstOrDefaultAsync();
+
+        var availableSectionCards = availableSections
+            .Select(section => new
+            {
+                Section = section,
+                SeatsRemaining = section.Capacity -
+                                 section.EnrollmentRecords.Count(record => record.Status == EnrollmentStatus.Enrolled)
+            })
+            .Where(entry => entry.SeatsRemaining > 0)
+            .Select(entry => new AvailableSectionViewModel
+            {
+                SectionId = entry.Section.Id,
+                CourseCode = entry.Section.Course.Code,
+                CourseTitle = entry.Section.Course.Title,
+                SectionCode = entry.Section.SectionCode,
+                CreditHours = entry.Section.Course.CreditHours,
+                InstructorName = entry.Section.InstructorName,
+                ScheduleSummary = FormatSchedule(entry.Section.Meetings),
+                SeatsRemaining = entry.SeatsRemaining
+            })
+            .ToList();
+
         return new EnrollmentIndexViewModel
         {
             StudentName = student.FullName,
             StudentNumber = student.StudentNumber,
+            ProgramName = student.ProgramName,
+            IntakeLabel = student.IntakeLabel,
             SemesterName = semester.Name,
             RegistrationWindow =
                 $"{semester.EnrollmentStartDate:dd MMM yyyy} - {semester.EnrollmentEndDate:dd MMM yyyy}",
-            AvailableSections = availableSections
-                .Select(section => new
-                {
-                    Section = section,
-                    SeatsRemaining = section.Capacity -
-                                     section.EnrollmentRecords.Count(record => record.Status == EnrollmentStatus.Enrolled)
-                })
-                .Where(entry => entry.SeatsRemaining > 0)
-                .Select(entry => new AvailableSectionViewModel
-                {
-                    SectionId = entry.Section.Id,
-                    CourseCode = entry.Section.Course.Code,
-                    CourseTitle = entry.Section.Course.Title,
-                    SectionCode = entry.Section.SectionCode,
-                    CreditHours = entry.Section.Course.CreditHours,
-                    InstructorName = entry.Section.InstructorName,
-                    ScheduleSummary = FormatSchedule(entry.Section.Meetings),
-                    SeatsRemaining = entry.SeatsRemaining
-                })
-                .ToList()
+            ActiveEnrollmentCount = activeEnrollments.Count,
+            CurrentCreditHours = activeEnrollments.Sum(record => record.CourseSection.Course.CreditHours),
+            AvailableSectionCount = availableSectionCards.Count,
+            RecentActivityText = latestAudit is null
+                ? "No recent registration activity has been recorded yet."
+                : $"{latestAudit.ActionType} {latestAudit.CourseSection.Course.Code} section {latestAudit.CourseSection.SectionCode} on {latestAudit.ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
+            AvailableSections = availableSectionCards
         };
     }
 
@@ -78,7 +100,7 @@ public class EnrollmentService(ApplicationDbContext context)
 
         if (section is null || section.SemesterId != semester.Id)
         {
-            return OperationResult.Failure("The selected section is not available in the current enrollment window.");
+            return OperationResult.Failure("The selected section is no longer available during the current registration period.");
         }
 
         var currentEnrollments = await context.EnrollmentRecords

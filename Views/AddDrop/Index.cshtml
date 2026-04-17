@@ -1,83 +1,138 @@
 @model AddDropIndexViewModel
 @{
-    ViewData["Title"] = "Course Add / Drop";
+    ViewData["Title"] = "Add or Drop";
 }
 
-<section class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-        <h1 class="h2 mb-1">Course Add / Drop</h1>
-        <p class="text-secondary mb-0">@Model.StudentName | @Model.SemesterName</p>
+<section class="portal-hero portal-hero-compact mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <span class="portal-eyebrow">Timetable management</span>
+            <h1 class="h2 mb-1">Add or drop classes</h1>
+            <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
+            <p class="text-secondary mb-0">@Model.SemesterName | Registration window: @Model.RegistrationWindow</p>
+        </div>
+        <a class="btn btn-outline-primary" asp-action="History">View Registration History</a>
     </div>
-    <a class="btn btn-outline-secondary" asp-action="History">View Add/Drop History</a>
+
+    <div class="row g-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Current classes</span>
+                <div class="stat-value">@Model.ActiveEnrollmentCount</div>
+                <div class="stat-meta">Active sections in your timetable</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Credit hours</span>
+                <div class="stat-value">@Model.CurrentCreditHours</div>
+                <div class="stat-meta">Study load for the active term</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Open sections</span>
+                <div class="stat-value">@Model.AvailableSectionCount</div>
+                <div class="stat-meta">Additional sections currently available to add</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Recorded changes</span>
+                <div class="stat-value">@Model.TotalHistoryEvents</div>
+                <div class="stat-meta stat-meta-strong">@Model.RecentActivityText</div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <div class="row g-4">
     <div class="col-lg-7">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white">
-                <h2 class="h5 mb-0">Current Registrations</h2>
+        <div class="portal-surface h-100">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                    <span class="portal-eyebrow">Current timetable</span>
+                    <h2 class="h4 mb-0">Registered sections</h2>
+                </div>
+                <span class="portal-chip portal-chip-contrast">@Model.ActiveEnrollmentCount active</span>
             </div>
-            <div class="card-body">
+            <div class="text-secondary small mb-4">Dropping a class updates your timetable immediately and writes a permanent audit entry to registration history.</div>
+            <div class="vstack gap-3">
                 @if (!Model.CurrentEnrollments.Any())
                 {
-                    <p class="text-secondary mb-0">No active registrations yet.</p>
+                    <div class="empty-state compact">
+                        <h3 class="h5 mb-2">No active classes yet</h3>
+                        <p class="text-secondary mb-0">Use the available section list to begin building your timetable for this semester.</p>
+                    </div>
                 }
                 else
                 {
-                    <div class="vstack gap-3">
                     @foreach (var enrollment in Model.CurrentEnrollments)
                     {
-                        <div class="border rounded-3 p-3">
+                        <article class="registration-card">
                             <div class="d-flex flex-wrap justify-content-between gap-3">
                                 <div>
-                                    <div class="fw-semibold">@enrollment.CourseCode - @enrollment.CourseTitle</div>
-                                    <div class="text-secondary small">Section @enrollment.SectionCode | @enrollment.CreditHours credit hours</div>
+                                    <div class="section-course-code mb-1">@enrollment.CourseCode</div>
+                                    <div class="fw-semibold mb-1">@enrollment.CourseTitle</div>
+                                    <div class="text-secondary small mb-1">Section @enrollment.SectionCode | @enrollment.CreditHours credit hours</div>
+                                    <div class="text-secondary small mb-1">Instructor: @enrollment.InstructorName</div>
                                     <div class="text-secondary small">@enrollment.ScheduleSummary</div>
                                 </div>
-                                <div class="text-end">
+                                <div class="registration-actions">
                                     <div class="text-secondary small mb-2">Enrolled @enrollment.EnrolledAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
-                                    <form asp-action="Drop" method="post" class="d-grid gap-2">
+                                    <form asp-action="Drop" method="post" class="drop-form">
                                         <input type="hidden" name="EnrollmentId" value="@enrollment.EnrollmentId" />
-                                        <textarea class="form-control form-control-sm" name="Remarks" rows="2" maxlength="300" placeholder="Reason for dropping" required></textarea>
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">Drop Course</button>
+                                        <label class="form-label small fw-semibold" for="drop-@enrollment.EnrollmentId">Reason for dropping</label>
+                                        <textarea id="drop-@enrollment.EnrollmentId" class="form-control form-control-sm" name="Remarks" rows="2" maxlength="300" placeholder="Provide a brief reason to document this change." required></textarea>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Drop Section</button>
                                     </form>
                                 </div>
                             </div>
-                        </div>
+                        </article>
                     }
-                    </div>
                 }
             </div>
         </div>
     </div>
 
     <div class="col-lg-5">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white">
-                <h2 class="h5 mb-0">Available To Add</h2>
+        <div class="portal-surface h-100">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                    <span class="portal-eyebrow">Available to add</span>
+                    <h2 class="h4 mb-0">Open sections</h2>
+                </div>
+                <span class="portal-chip">@Model.AvailableSectionCount available</span>
             </div>
-            <div class="card-body">
+            <div class="vstack gap-3">
                 @if (!Model.AvailableSections.Any())
                 {
-                    <p class="text-secondary mb-0">There are no additional sections available to add right now.</p>
+                    <div class="empty-state compact">
+                        <h3 class="h5 mb-2">No sections available right now</h3>
+                        <p class="text-secondary mb-0">All remaining sections are either full or already represented in your active timetable.</p>
+                    </div>
                 }
                 else
                 {
-                    <div class="vstack gap-3">
                     @foreach (var item in Model.AvailableSections)
                     {
-                        <div class="border rounded-3 p-3">
-                            <div class="fw-semibold">@item.CourseCode - @item.CourseTitle</div>
-                            <div class="text-secondary small">Section @item.SectionCode | Seats left: @item.SeatsRemaining</div>
-                            <div class="text-secondary small">@item.ScheduleSummary</div>
+                        <article class="section-card section-card-compact">
+                            <div class="d-flex justify-content-between gap-3 align-items-start mb-2">
+                                <div>
+                                    <div class="section-course-code mb-1">@item.CourseCode</div>
+                                    <div class="fw-semibold">@item.CourseTitle</div>
+                                </div>
+                                <span class="portal-chip portal-chip-contrast">@item.SeatsRemaining seats</span>
+                            </div>
+                            <div class="text-secondary small mb-1">Section @item.SectionCode | @item.CreditHours credit hours</div>
+                            <div class="text-secondary small mb-1">@item.ScheduleSummary</div>
                             <div class="text-secondary small mb-3">Instructor: @item.InstructorName</div>
-                            <form asp-action="Add" method="post">
+                            <form asp-action="Add" method="post" class="d-flex justify-content-end">
                                 <input type="hidden" name="sectionId" value="@item.SectionId" />
-                                <button type="submit" class="btn btn-primary btn-sm">Add Course</button>
+                                <button type="submit" class="btn btn-primary btn-sm">Add Section</button>
                             </form>
-                        </div>
+                        </article>
                     }
-                    </div>
                 }
             </div>
         </div>

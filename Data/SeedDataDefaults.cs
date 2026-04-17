@@ -11,6 +11,8 @@ public static class SeedDataDefaults
     [
         "alice@student.demo",
         "bob@student.demo",
-        "chloe@student.demo"
+        "chloe@student.demo",
+        "daniel@student.demo",
+        "farah@student.demo"
     ];
 }

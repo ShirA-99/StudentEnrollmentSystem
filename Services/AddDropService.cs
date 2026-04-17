@@ -29,10 +29,30 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             .OrderBy(record => record.CourseSection.Course.Code)
             .ToListAsync();
 
+        var historyEvents = await context.AddDropAudits
+            .AsNoTracking()
+            .Include(audit => audit.CourseSection)
+                .ThenInclude(section => section.Course)
+            .Where(audit => audit.StudentProfileId == student.Id)
+            .OrderByDescending(audit => audit.ActionAtUtc)
+            .ToListAsync();
+
+        var latestHistoryEvent = historyEvents.FirstOrDefault();
+
         return new AddDropIndexViewModel
         {
             StudentName = student.FullName,
+            StudentNumber = student.StudentNumber,
+            ProgramName = student.ProgramName,
             SemesterName = catalog.SemesterName,
+            RegistrationWindow = catalog.RegistrationWindow,
+            ActiveEnrollmentCount = currentEnrollments.Count,
+            CurrentCreditHours = currentEnrollments.Sum(record => record.CourseSection.Course.CreditHours),
+            AvailableSectionCount = catalog.AvailableSections.Count,
+            TotalHistoryEvents = historyEvents.Count,
+            RecentActivityText = latestHistoryEvent is null
+                ? "No registration adjustments have been recorded yet."
+                : $"{latestHistoryEvent.ActionType} {latestHistoryEvent.CourseSection.Course.Code} section {latestHistoryEvent.CourseSection.SectionCode} on {latestHistoryEvent.ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
             AvailableSections = catalog.AvailableSections,
             CurrentEnrollments = currentEnrollments.Select(record => new CurrentEnrollmentViewModel
             {
@@ -40,6 +60,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
                 CourseCode = record.CourseSection.Course.Code,
                 CourseTitle = record.CourseSection.Course.Title,
                 SectionCode = record.CourseSection.SectionCode,
+                InstructorName = record.CourseSection.InstructorName,
                 CreditHours = record.CourseSection.Course.CreditHours,
                 EnrolledAtUtc = record.EnrolledAtUtc,
                 ScheduleSummary = EnrollmentService.FormatSchedule(record.CourseSection.Meetings)
@@ -90,7 +111,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         await context.SaveChangesAsync();
 
         return OperationResult.Success(
-            $"{enrollment.CourseSection.Course.Code} section {enrollment.CourseSection.SectionCode} has been dropped.");
+            $"{enrollment.CourseSection.Course.Code} section {enrollment.CourseSection.SectionCode} has been dropped from your current timetable.");
     }
 
     public async Task<AddDropHistoryViewModel> GetHistoryAsync(string userId)
@@ -104,6 +125,8 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             .AsNoTracking()
             .Include(audit => audit.CourseSection)
                 .ThenInclude(section => section.Course)
+            .Include(audit => audit.CourseSection)
+                .ThenInclude(section => section.Semester)
             .Where(audit => audit.StudentProfileId == student.Id)
             .OrderByDescending(audit => audit.ActionAtUtc)
             .ToListAsync();
@@ -111,9 +134,18 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         return new AddDropHistoryViewModel
         {
             StudentName = student.FullName,
+            StudentNumber = student.StudentNumber,
+            ProgramName = student.ProgramName,
+            TotalActions = history.Count,
+            AddedCount = history.Count(item => item.ActionType == AddDropActionType.Added),
+            DroppedCount = history.Count(item => item.ActionType == AddDropActionType.Dropped),
+            LatestActivityText = history.Count == 0
+                ? "No registration history is available yet."
+                : $"{history[0].ActionType} {history[0].CourseSection.Course.Code} section {history[0].CourseSection.SectionCode} on {history[0].ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
             HistoryItems = history.Select(item => new AddDropHistoryItemViewModel
             {
                 ActionTypeLabel = item.ActionType == AddDropActionType.Added ? "Added" : "Dropped",
+                SemesterName = item.CourseSection.Semester.Name,
                 CourseCode = item.CourseSection.Course.Code,
                 CourseTitle = item.CourseSection.Course.Title,
                 SectionCode = item.CourseSection.SectionCode,

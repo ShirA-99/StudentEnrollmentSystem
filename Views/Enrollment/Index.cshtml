@@ -1,63 +1,92 @@
 @model EnrollmentIndexViewModel
 @{
-    ViewData["Title"] = "Online Enrollment";
+    ViewData["Title"] = "Course Enrollment";
 }
 
-<section class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-        <h1 class="h2 mb-1">Online Enrollment</h1>
-        <p class="text-secondary mb-0">@Model.StudentName (@Model.StudentNumber) | @Model.SemesterName</p>
-        <p class="text-secondary mb-0">Registration window: @Model.RegistrationWindow</p>
+<section class="portal-hero portal-hero-compact mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <span class="portal-eyebrow">Course enrollment</span>
+            <h1 class="h2 mb-1">Build your timetable for @Model.SemesterName</h1>
+            <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
+            <p class="text-secondary mb-0">Registration window: @Model.RegistrationWindow</p>
+        </div>
+        <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add or Drop</a>
     </div>
-    <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Go to Add/Drop</a>
+
+    <div class="row g-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Active registrations</span>
+                <div class="stat-value">@Model.ActiveEnrollmentCount</div>
+                <div class="stat-meta">@Model.IntakeLabel intake</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Credit hours</span>
+                <div class="stat-value">@Model.CurrentCreditHours</div>
+                <div class="stat-meta">Current study load in the live semester</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Available sections</span>
+                <div class="stat-value">@Model.AvailableSectionCount</div>
+                <div class="stat-meta">Open sections that you can still select</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Recent activity</span>
+                <div class="stat-meta stat-meta-strong">@Model.RecentActivityText</div>
+            </div>
+        </div>
+    </div>
 </section>
 
 @if (!Model.AvailableSections.Any())
 {
-    <div class="alert alert-info">
-        No additional sections are currently available. You may already be enrolled, or the remaining sections are full.
+    <div class="portal-surface empty-state">
+        <h2 class="h4 mb-2">No additional sections are currently available</h2>
+        <p class="text-secondary mb-3">You may already be registered for the available courses, or the remaining sections have reached capacity.</p>
+        <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Review Current Timetable</a>
     </div>
 }
 else
 {
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Course</th>
-                            <th>Section</th>
-                            <th>Schedule</th>
-                            <th>Instructor</th>
-                            <th>Seats Left</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var item in Model.AvailableSections)
-                    {
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">@item.CourseCode</div>
-                                <div class="text-secondary small">@item.CourseTitle</div>
-                                <div class="text-secondary small">@item.CreditHours credit hours</div>
-                            </td>
-                            <td>@item.SectionCode</td>
-                            <td class="small">@item.ScheduleSummary</td>
-                            <td>@item.InstructorName</td>
-                            <td>@item.SeatsRemaining</td>
-                            <td class="text-end">
-                                <form asp-action="Enroll" method="post">
-                                    <input type="hidden" name="sectionId" value="@item.SectionId" />
-                                    <button type="submit" class="btn btn-primary btn-sm">Enroll</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
+    <section class="row g-4">
+        @foreach (var item in Model.AvailableSections)
+        {
+            <div class="col-xl-6">
+                <article class="portal-surface section-card h-100">
+                    <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
+                        <div>
+                            <div class="section-course-code">@item.CourseCode</div>
+                            <h2 class="h4 mb-1">@item.CourseTitle</h2>
+                            <div class="section-subtitle">Section @item.SectionCode</div>
+                        </div>
+                        <div class="section-chips">
+                            <span class="portal-chip">@item.CreditHours credit hours</span>
+                            <span class="portal-chip portal-chip-contrast">@item.SeatsRemaining seats left</span>
+                        </div>
+                    </div>
+                    <div class="section-detail-grid mb-4">
+                        <div class="section-detail">
+                            <span class="section-detail-label">Schedule</span>
+                            <span class="section-detail-value">@item.ScheduleSummary</span>
+                        </div>
+                        <div class="section-detail">
+                            <span class="section-detail-label">Instructor</span>
+                            <span class="section-detail-value">@item.InstructorName</span>
+                        </div>
+                    </div>
+                    <form asp-action="Enroll" method="post" class="d-flex justify-content-end">
+                        <input type="hidden" name="sectionId" value="@item.SectionId" />
+                        <button type="submit" class="btn btn-primary">Add To Timetable</button>
+                    </form>
+                </article>
             </div>
-        </div>
-    </div>
+        }
+    </section>
 }

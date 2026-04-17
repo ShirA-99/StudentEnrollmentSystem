@@ -1,29 +1,66 @@
 @model AddDropHistoryViewModel
 @{
-    ViewData["Title"] = "Add/Drop History";
+    ViewData["Title"] = "Registration History";
 }
 
-<section class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <div>
-        <h1 class="h2 mb-1">Add/Drop History</h1>
-        <p class="text-secondary mb-0">@Model.StudentName</p>
+<section class="portal-hero portal-hero-compact mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <span class="portal-eyebrow">Registration history</span>
+            <h1 class="h2 mb-1">Enrollment activity timeline</h1>
+            <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber)</p>
+            <p class="text-secondary mb-0">@Model.ProgramName</p>
+        </div>
+        <a class="btn btn-outline-primary" asp-action="Index">Back To Add or Drop</a>
     </div>
-    <a class="btn btn-outline-primary" asp-action="Index">Back to Add/Drop</a>
+
+    <div class="row g-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Total actions</span>
+                <div class="stat-value">@Model.TotalActions</div>
+                <div class="stat-meta">All recorded registration changes</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Added</span>
+                <div class="stat-value">@Model.AddedCount</div>
+                <div class="stat-meta">Successful registration actions</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Dropped</span>
+                <div class="stat-value">@Model.DroppedCount</div>
+                <div class="stat-meta">Sections removed from timetable</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="portal-surface stat-card h-100">
+                <span class="stat-label">Latest activity</span>
+                <div class="stat-meta stat-meta-strong">@Model.LatestActivityText</div>
+            </div>
+        </div>
+    </div>
 </section>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body p-0">
+<div class="portal-surface">
         @if (!Model.HistoryItems.Any())
         {
-            <div class="p-4 text-secondary">No add/drop history is available for this student yet.</div>
+            <div class="empty-state compact">
+                <h2 class="h4 mb-2">No history available yet</h2>
+                <p class="text-secondary mb-0">Completed add and drop actions will appear here once registration changes have been submitted.</p>
+            </div>
         }
         else
         {
             <div class="table-responsive">
-                <table class="table table-striped align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table portal-table align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>Action</th>
+                            <th>Semester</th>
                             <th>Course</th>
                             <th>Section</th>
                             <th>Timestamp</th>
@@ -35,10 +72,11 @@
                     {
                         <tr>
                             <td>
-                                <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger")">
+                                <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger") rounded-pill px-3 py-2">
                                     @item.ActionTypeLabel
                                 </span>
                             </td>
+                            <td>@item.SemesterName</td>
                             <td>
                                 <div class="fw-semibold">@item.CourseCode</div>
                                 <div class="text-secondary small">@item.CourseTitle</div>
@@ -52,5 +90,4 @@
                 </table>
             </div>
         }
-    </div>
 </div>

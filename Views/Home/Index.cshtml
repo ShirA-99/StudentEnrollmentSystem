@@ -1,66 +1,144 @@
+@model HomeIndexViewModel
 @{
-    ViewData["Title"] = "Student Enrollment System";
+    ViewData["Title"] = "Dashboard";
 }
 
-<section class="rounded-4 border shadow-sm p-4 p-lg-5 mb-4 bg-white">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-7">
-            <span class="badge text-bg-primary mb-3">Team Base System</span>
-            <h1 class="display-5 fw-semibold mb-3">Student Enrollment System for the team project</h1>
-            <p class="lead text-secondary mb-4">
-                This system uses ASP.NET Core MVC, ASP.NET Identity, SQL Server LocalDB, and seeded academic data so the
-                rest of the team can continue building on one shared foundation.
+<section class="portal-hero mb-4">
+    <div class="row g-4 align-items-center">
+        <div class="col-xl-7">
+            <span class="portal-eyebrow">Registration services</span>
+            <h1 class="display-5 fw-semibold mb-3">@Model.PortalTitle</h1>
+            <p class="portal-lead mb-4">
+                Plan your semester, register for available classes, review timetable changes, and track add/drop activity from one place.
             </p>
             <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Open Enrollment</a>
-                <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Add/Drop</a>
+                <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Browse Available Sections</a>
+                <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Current Timetable</a>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="card border-0 bg-body-tertiary shadow-sm">
-                <div class="card-body">
-                    <h2 class="h5">Demo login accounts</h2>
-                    <p class="text-secondary small mb-3">Use any of these to test the system locally.</p>
-                    <ul class="list-group list-group-flush small">
-                        <li class="list-group-item px-0"><strong>Alice:</strong> alice@student.demo</li>
-                        <li class="list-group-item px-0"><strong>Bob:</strong> bob@student.demo</li>
-                        <li class="list-group-item px-0"><strong>Chloe:</strong> chloe@student.demo</li>
-                        <li class="list-group-item px-0"><strong>Password:</strong> Pass123$</li>
-                    </ul>
+        <div class="col-xl-5">
+            <div class="portal-surface portal-demo-panel h-100">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <span class="portal-eyebrow">Demo access</span>
+                        <h2 class="h4 mb-1">Sample student accounts</h2>
+                    </div>
+                    <span class="portal-chip">Password: Pass123$</span>
+                </div>
+                <p class="text-secondary mb-3">Use any of the seeded student accounts below when presenting the enrollment flow locally.</p>
+                <div class="vstack gap-2">
+                    @foreach (var account in Model.DemoAccounts)
+                    {
+                        <div class="demo-account-row">
+                            <div>
+                                <div class="fw-semibold">@account.DisplayName</div>
+                                <div class="text-secondary small">@account.Email</div>
+                            </div>
+                            <span class="portal-chip">Student</span>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+<section class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-surface stat-card h-100">
+            <span class="stat-label">Active term</span>
+            <div class="stat-value">@Model.SemesterName</div>
+            <div class="stat-meta">@Model.EnrollmentWindow</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-surface stat-card h-100">
+            <span class="stat-label">Catalog courses</span>
+            <div class="stat-value">@Model.CatalogCourseCount</div>
+            <div class="stat-meta">Academic and elective offerings available in the portal</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-surface stat-card h-100">
+            <span class="stat-label">Open sections</span>
+            <div class="stat-value">@Model.OpenSectionCount</div>
+            <div class="stat-meta">Sections with seats still available in the current window</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-surface stat-card h-100">
+            <span class="stat-label">Current registrations</span>
+            <div class="stat-value">@Model.CurrentRegistrationCount</div>
+            <div class="stat-meta">Confirmed active enrollments in the live semester</div>
+        </div>
+    </div>
+</section>
+
 <section class="row g-4">
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <h2 class="h5">Completed Module</h2>
-                <p class="text-secondary mb-0">
-                    Course enrollment, add/drop management, registration history, timetable clash checks, and seat-capacity validation.
-                </p>
+    <div class="col-lg-5">
+        <div class="portal-surface h-100">
+            <span class="portal-eyebrow">Registration status</span>
+            <h2 class="h4 mb-3">Self-service enrollment is ready</h2>
+            <p class="text-secondary mb-4">@Model.RecentUpdateText</p>
+            <div class="quick-facts">
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Students in portal</span>
+                    <span class="quick-fact-value">@Model.ActiveStudentCount</span>
+                </div>
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Enrollment window</span>
+                    <span class="quick-fact-value">@Model.EnrollmentWindow</span>
+                </div>
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Main services</span>
+                    <span class="quick-fact-value">Course enrollment, timetable updates, registration history</span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <h2 class="h5">Shared team foundation</h2>
-                <p class="text-secondary mb-0">
-                    Identity, database context, student profile, semester, course, section, and audit entities are ready for the other members.
-                </p>
+    <div class="col-lg-7">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="portal-surface h-100">
+                    <span class="portal-eyebrow">Academic services</span>
+                    <h2 class="h4 mb-3">Course planning</h2>
+                    <p class="text-secondary mb-4">Review seat availability, section schedules, instructors, and credit hours before you submit an enrollment request.</p>
+                    <a class="btn btn-outline-primary" asp-controller="Enrollment" asp-action="Index">Open Course Enrollment</a>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <h2 class="h5">Recommended GitHub flow</h2>
-                <p class="text-secondary mb-0">
-                    Keep this baseline in <code>main</code>, then let each member work on their own feature branch and merge through pull requests.
-                </p>
+            <div class="col-md-6">
+                <div class="portal-surface h-100">
+                    <span class="portal-eyebrow">Quick access</span>
+                    <h2 class="h4 mb-3">Timetable management</h2>
+                    <p class="text-secondary mb-4">Add sections to your timetable, remove existing registrations, and review your add/drop history before the semester closes.</p>
+                    <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add or Drop</a>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="portal-surface">
+                    <span class="portal-eyebrow">Student guidance</span>
+                    <h2 class="h4 mb-3">Before you submit changes</h2>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="info-tile">
+                                <div class="fw-semibold mb-2">Check seat availability</div>
+                                <div class="text-secondary small">Sections remain open only while seats are available during the registration window.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-tile">
+                                <div class="fw-semibold mb-2">Avoid timetable clashes</div>
+                                <div class="text-secondary small">The system validates overlapping schedules before confirming a new section.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-tile">
+                                <div class="fw-semibold mb-2">Keep a record</div>
+                                <div class="text-secondary small">Every add or drop action is written to registration history for later review.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

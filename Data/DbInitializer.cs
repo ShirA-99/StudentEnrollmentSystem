@@ -12,285 +12,598 @@ public static class DbInitializer
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         await context.Database.MigrateAsync();
-
-        if (!await context.Semesters.AnyAsync())
-        {
-            await SeedAcademicDataAsync(context);
-        }
-
-        if (!await context.Users.AnyAsync())
-        {
-            await SeedUsersAsync(userManager);
-        }
-
-        if (!await context.StudentProfiles.AnyAsync())
-        {
-            await SeedStudentProfilesAsync(context, userManager);
-        }
-
-        if (!await context.EnrollmentRecords.AnyAsync())
-        {
-            await SeedEnrollmentHistoryAsync(context);
-        }
+        await EnsureAcademicDataAsync(context);
+        await EnsureUsersAsync(userManager);
+        await EnsureStudentProfilesAsync(context, userManager);
+        await EnsureEnrollmentHistoryAsync(context);
     }
 
-    private static async Task SeedAcademicDataAsync(ApplicationDbContext context)
+    private static async Task EnsureAcademicDataAsync(ApplicationDbContext context)
     {
-        var semester = new Semester
-        {
-            Code = "2026-T2",
-            Name = "Trimester 2 2026",
-            Status = SemesterStatus.OpenForEnrollment,
-            EnrollmentStartDate = new DateOnly(2026, 4, 1),
-            EnrollmentEndDate = new DateOnly(2026, 5, 31)
-        };
+        var courseSeeds = CreateCourseCatalog();
+        var existingCourses = await context.Courses.ToDictionaryAsync(course => course.Code);
 
-        var courses = new List<Course>
+        foreach (var seed in courseSeeds)
         {
-            new() { Code = "CSC101", Title = "Introduction to Programming", CreditHours = 3 },
-            new() { Code = "MAT201", Title = "Discrete Mathematics", CreditHours = 3 },
-            new() { Code = "ENG150", Title = "Academic Writing", CreditHours = 2 },
-            new() { Code = "HIS220", Title = "Malaysian Civilisation", CreditHours = 2 }
-        };
-
-        semester.CourseSections =
-        [
-            new CourseSection
+            if (existingCourses.TryGetValue(seed.Code, out var existingCourse))
             {
-                Course = courses[0],
-                SectionCode = "01",
-                Capacity = 25,
-                InstructorName = "Dr. Nur Izzati",
-                Meetings =
-                [
-                    new SectionMeeting
-                    {
-                        DayOfWeek = DayOfWeek.Monday,
-                        StartTime = new TimeOnly(9, 0),
-                        EndTime = new TimeOnly(11, 0),
-                        Venue = "Lab 2"
-                    },
-                    new SectionMeeting
-                    {
-                        DayOfWeek = DayOfWeek.Thursday,
-                        StartTime = new TimeOnly(9, 0),
-                        EndTime = new TimeOnly(10, 0),
-                        Venue = "Lab 2"
-                    }
-                ]
-            },
-            new CourseSection
-            {
-                Course = courses[1],
-                SectionCode = "01",
-                Capacity = 20,
-                InstructorName = "Ms. Tan Mei Ling",
-                Meetings =
-                [
-                    new SectionMeeting
-                    {
-                        DayOfWeek = DayOfWeek.Monday,
-                        StartTime = new TimeOnly(10, 0),
-                        EndTime = new TimeOnly(12, 0),
-                        Venue = "Room B201"
-                    }
-                ]
-            },
-            new CourseSection
-            {
-                Course = courses[2],
-                SectionCode = "02",
-                Capacity = 18,
-                InstructorName = "Mr. Haris Ismail",
-                Meetings =
-                [
-                    new SectionMeeting
-                    {
-                        DayOfWeek = DayOfWeek.Tuesday,
-                        StartTime = new TimeOnly(14, 0),
-                        EndTime = new TimeOnly(16, 0),
-                        Venue = "Room C103"
-                    }
-                ]
-            },
-            new CourseSection
-            {
-                Course = courses[3],
-                SectionCode = "01",
-                Capacity = 1,
-                InstructorName = "Dr. Leong Wei Han",
-                Meetings =
-                [
-                    new SectionMeeting
-                    {
-                        DayOfWeek = DayOfWeek.Wednesday,
-                        StartTime = new TimeOnly(8, 30),
-                        EndTime = new TimeOnly(10, 30),
-                        Venue = "Room A101"
-                    }
-                ]
+                existingCourse.Title = seed.Title;
+                existingCourse.CreditHours = seed.CreditHours;
             }
-        ];
-
-        await context.Semesters.AddAsync(semester);
-        await context.SaveChangesAsync();
-    }
-
-    private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager)
-    {
-        var demoUsers = new[]
-        {
-            new ApplicationUser
+            else
             {
-                UserName = SeedDataDefaults.DemoEmails[0],
-                Email = SeedDataDefaults.DemoEmails[0],
-                EmailConfirmed = true,
-                DisplayName = "Alice Tan"
-            },
-            new ApplicationUser
-            {
-                UserName = SeedDataDefaults.DemoEmails[1],
-                Email = SeedDataDefaults.DemoEmails[1],
-                EmailConfirmed = true,
-                DisplayName = "Bob Kumar"
-            },
-            new ApplicationUser
-            {
-                UserName = SeedDataDefaults.DemoEmails[2],
-                Email = SeedDataDefaults.DemoEmails[2],
-                EmailConfirmed = true,
-                DisplayName = "Chloe Lim"
-            }
-        };
-
-        foreach (var user in demoUsers)
-        {
-            var result = await userManager.CreateAsync(user, SeedDataDefaults.DemoPassword);
-            if (!result.Succeeded)
-            {
-                throw new InvalidOperationException($"Failed to create seeded user {user.Email}: {string.Join(", ", result.Errors.Select(error => error.Description))}");
+                await context.Courses.AddAsync(new Course
+                {
+                    Code = seed.Code,
+                    Title = seed.Title,
+                    CreditHours = seed.CreditHours
+                });
             }
         }
-    }
-
-    private static async Task SeedStudentProfilesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
-    {
-        var activeSemester = await context.Semesters.SingleAsync();
-        var users = await userManager.Users.ToListAsync();
-
-        await context.StudentProfiles.AddRangeAsync(
-            new StudentProfile
-            {
-                ApplicationUserId = users.Single(user => user.Email == SeedDataDefaults.DemoEmails[0]).Id,
-                StudentNumber = "ST2026001",
-                FullName = "Alice Tan",
-                Email = SeedDataDefaults.DemoEmails[0],
-                ProgramName = "Diploma in Software Engineering",
-                IntakeLabel = "January 2026",
-                CurrentSemesterId = activeSemester.Id
-            },
-            new StudentProfile
-            {
-                ApplicationUserId = users.Single(user => user.Email == SeedDataDefaults.DemoEmails[1]).Id,
-                StudentNumber = "ST2026002",
-                FullName = "Bob Kumar",
-                Email = SeedDataDefaults.DemoEmails[1],
-                ProgramName = "Diploma in Information Technology",
-                IntakeLabel = "January 2026",
-                CurrentSemesterId = activeSemester.Id
-            },
-            new StudentProfile
-            {
-                ApplicationUserId = users.Single(user => user.Email == SeedDataDefaults.DemoEmails[2]).Id,
-                StudentNumber = "ST2026003",
-                FullName = "Chloe Lim",
-                Email = SeedDataDefaults.DemoEmails[2],
-                ProgramName = "Diploma in Business Analytics",
-                IntakeLabel = "January 2026",
-                CurrentSemesterId = activeSemester.Id
-            });
 
         await context.SaveChangesAsync();
-    }
 
-    private static async Task SeedEnrollmentHistoryAsync(ApplicationDbContext context)
-    {
-        var students = await context.StudentProfiles.OrderBy(profile => profile.StudentNumber).ToListAsync();
-        var activeSemester = await context.Semesters.SingleAsync();
-        var sections = await context.CourseSections
+        existingCourses = await context.Courses.ToDictionaryAsync(course => course.Code);
+
+        var semesterSeeds = CreateSemesterSeeds();
+        var existingSemesters = await context.Semesters.ToDictionaryAsync(semester => semester.Code);
+
+        foreach (var seed in semesterSeeds)
+        {
+            if (existingSemesters.TryGetValue(seed.Code, out var existingSemester))
+            {
+                existingSemester.Name = seed.Name;
+                existingSemester.Status = seed.Status;
+                existingSemester.EnrollmentStartDate = seed.EnrollmentStartDate;
+                existingSemester.EnrollmentEndDate = seed.EnrollmentEndDate;
+            }
+            else
+            {
+                await context.Semesters.AddAsync(new Semester
+                {
+                    Code = seed.Code,
+                    Name = seed.Name,
+                    Status = seed.Status,
+                    EnrollmentStartDate = seed.EnrollmentStartDate,
+                    EnrollmentEndDate = seed.EnrollmentEndDate
+                });
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        existingSemesters = await context.Semesters.ToDictionaryAsync(semester => semester.Code);
+
+        var existingSections = await context.CourseSections
             .Include(section => section.Course)
-            .Where(section => section.SemesterId == activeSemester.Id)
+            .Include(section => section.Semester)
+            .Include(section => section.Meetings)
             .ToListAsync();
 
-        var alice = students.Single(student => student.Email == SeedDataDefaults.DemoEmails[0]);
-        var bob = students.Single(student => student.Email == SeedDataDefaults.DemoEmails[1]);
+        var existingSectionMap = existingSections.ToDictionary(
+            section => BuildSectionKey(section.Semester.Code, section.Course.Code, section.SectionCode));
 
-        var programmingSection = sections.Single(section => section.Course.Code == "CSC101");
-        var writingSection = sections.Single(section => section.Course.Code == "ENG150");
-        var historySection = sections.Single(section => section.Course.Code == "HIS220");
+        foreach (var seed in CreateSectionSeeds())
+        {
+            var sectionKey = BuildSectionKey(seed.SemesterCode, seed.CourseCode, seed.SectionCode);
 
-        var enrolledAt = DateTime.UtcNow.AddDays(-5);
-        var droppedAt = DateTime.UtcNow.AddDays(-1);
+            if (!existingSectionMap.TryGetValue(sectionKey, out var section))
+            {
+                await context.CourseSections.AddAsync(new CourseSection
+                {
+                    CourseId = existingCourses[seed.CourseCode].Id,
+                    SemesterId = existingSemesters[seed.SemesterCode].Id,
+                    SectionCode = seed.SectionCode,
+                    Capacity = seed.Capacity,
+                    InstructorName = seed.InstructorName,
+                    Meetings = seed.Meetings.Select(CreateMeetingEntity).ToList()
+                });
 
-        await context.EnrollmentRecords.AddRangeAsync(
-            new EnrollmentRecord
-            {
-                StudentProfileId = alice.Id,
-                CourseSectionId = programmingSection.Id,
-                Status = EnrollmentStatus.Enrolled,
-                EnrolledAtUtc = enrolledAt
-            },
-            new EnrollmentRecord
-            {
-                StudentProfileId = alice.Id,
-                CourseSectionId = writingSection.Id,
-                Status = EnrollmentStatus.Dropped,
-                EnrolledAtUtc = enrolledAt.AddDays(1),
-                DroppedAtUtc = droppedAt,
-                DropReason = "Swapped to another elective"
-            },
-            new EnrollmentRecord
-            {
-                StudentProfileId = bob.Id,
-                CourseSectionId = historySection.Id,
-                Status = EnrollmentStatus.Enrolled,
-                EnrolledAtUtc = enrolledAt.AddDays(2)
-            });
+                continue;
+            }
 
-        await context.AddDropAudits.AddRangeAsync(
-            new AddDropAudit
+            section.Capacity = seed.Capacity;
+            section.InstructorName = seed.InstructorName;
+
+            if (SchedulesDiffer(section.Meetings, seed.Meetings))
             {
-                StudentProfileId = alice.Id,
-                CourseSectionId = programmingSection.Id,
-                ActionType = AddDropActionType.Added,
-                ActionAtUtc = enrolledAt,
-                Remarks = "Seeded initial registration"
-            },
-            new AddDropAudit
-            {
-                StudentProfileId = alice.Id,
-                CourseSectionId = writingSection.Id,
-                ActionType = AddDropActionType.Added,
-                ActionAtUtc = enrolledAt.AddDays(1),
-                Remarks = "Seeded initial registration"
-            },
-            new AddDropAudit
-            {
-                StudentProfileId = alice.Id,
-                CourseSectionId = writingSection.Id,
-                ActionType = AddDropActionType.Dropped,
-                ActionAtUtc = droppedAt,
-                Remarks = "Swapped to another elective"
-            },
-            new AddDropAudit
-            {
-                StudentProfileId = bob.Id,
-                CourseSectionId = historySection.Id,
-                ActionType = AddDropActionType.Added,
-                ActionAtUtc = enrolledAt.AddDays(2),
-                Remarks = "Seeded section capacity scenario"
-            });
+                context.SectionMeetings.RemoveRange(section.Meetings);
+                section.Meetings = seed.Meetings.Select(CreateMeetingEntity).ToList();
+            }
+        }
 
         await context.SaveChangesAsync();
     }
+
+    private static async Task EnsureUsersAsync(UserManager<ApplicationUser> userManager)
+    {
+        foreach (var seed in CreateUserSeeds())
+        {
+            var user = await userManager.FindByEmailAsync(seed.Email);
+            if (user is null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = seed.Email,
+                    Email = seed.Email,
+                    EmailConfirmed = true,
+                    DisplayName = seed.DisplayName
+                };
+
+                var createResult = await userManager.CreateAsync(user, SeedDataDefaults.DemoPassword);
+                if (!createResult.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to create seeded user {seed.Email}: {string.Join(", ", createResult.Errors.Select(error => error.Description))}");
+                }
+
+                continue;
+            }
+
+            user.UserName = seed.Email;
+            user.Email = seed.Email;
+            user.EmailConfirmed = true;
+            user.DisplayName = seed.DisplayName;
+
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to update seeded user {seed.Email}: {string.Join(", ", updateResult.Errors.Select(error => error.Description))}");
+            }
+        }
+    }
+
+    private static async Task EnsureStudentProfilesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    {
+        var activeSemester = await context.Semesters.SingleAsync(semester => semester.Code == "2026-T2");
+        var users = await userManager.Users.ToDictionaryAsync(user => user.Email!);
+        var existingProfiles = await context.StudentProfiles.ToDictionaryAsync(profile => profile.Email);
+
+        foreach (var seed in CreateUserSeeds())
+        {
+            if (!users.TryGetValue(seed.Email, out var user))
+            {
+                throw new InvalidOperationException($"Seeded user {seed.Email} was not found after user initialization.");
+            }
+
+            if (existingProfiles.TryGetValue(seed.Email, out var profile))
+            {
+                profile.ApplicationUserId = user.Id;
+                profile.StudentNumber = seed.StudentNumber;
+                profile.FullName = seed.DisplayName;
+                profile.Email = seed.Email;
+                profile.ProgramName = seed.ProgramName;
+                profile.IntakeLabel = seed.IntakeLabel;
+                profile.CurrentSemesterId = activeSemester.Id;
+            }
+            else
+            {
+                await context.StudentProfiles.AddAsync(new StudentProfile
+                {
+                    ApplicationUserId = user.Id,
+                    StudentNumber = seed.StudentNumber,
+                    FullName = seed.DisplayName,
+                    Email = seed.Email,
+                    ProgramName = seed.ProgramName,
+                    IntakeLabel = seed.IntakeLabel,
+                    CurrentSemesterId = activeSemester.Id
+                });
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task EnsureEnrollmentHistoryAsync(ApplicationDbContext context)
+    {
+        var students = await context.StudentProfiles.ToDictionaryAsync(profile => profile.Email);
+        var sections = await context.CourseSections
+            .Include(section => section.Course)
+            .Include(section => section.Semester)
+            .ToListAsync();
+
+        var sectionMap = sections.ToDictionary(
+            section => BuildSectionKey(section.Semester.Code, section.Course.Code, section.SectionCode));
+
+        var existingRecords = await context.EnrollmentRecords.ToListAsync();
+        var existingRecordKeys = existingRecords
+            .GroupBy(record => $"{record.StudentProfileId}:{record.CourseSectionId}:{record.Status}")
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var existingAuditKeys = await context.AddDropAudits
+            .Select(audit => $"{audit.StudentProfileId}:{audit.CourseSectionId}:{audit.ActionType}:{audit.ActionAtUtc.Ticks}")
+            .ToHashSetAsync();
+
+        var enrollmentRecordsToAdd = new List<EnrollmentRecord>();
+        var auditsToAdd = new List<AddDropAudit>();
+
+        foreach (var seed in CreateEnrollmentSeeds())
+        {
+            if (!students.TryGetValue(seed.StudentEmail, out var student))
+            {
+                throw new InvalidOperationException($"Student profile for {seed.StudentEmail} was not found.");
+            }
+
+            if (!sectionMap.TryGetValue(seed.SectionKey, out var section))
+            {
+                throw new InvalidOperationException($"Section {seed.SectionKey} was not found during seed initialization.");
+            }
+
+            var status = seed.DroppedAtUtc.HasValue ? EnrollmentStatus.Dropped : EnrollmentStatus.Enrolled;
+            var recordKey = $"{student.Id}:{section.Id}:{status}";
+
+            if (!existingRecordKeys.ContainsKey(recordKey))
+            {
+                var record = new EnrollmentRecord
+                {
+                    StudentProfileId = student.Id,
+                    CourseSectionId = section.Id,
+                    Status = status,
+                    EnrolledAtUtc = seed.AddedAtUtc,
+                    DroppedAtUtc = seed.DroppedAtUtc,
+                    DropReason = seed.DropReason
+                };
+
+                enrollmentRecordsToAdd.Add(record);
+                existingRecordKeys[recordKey] = record;
+            }
+
+            AddAuditIfMissing(
+                existingAuditKeys,
+                auditsToAdd,
+                student.Id,
+                section.Id,
+                AddDropActionType.Added,
+                seed.AddedAtUtc,
+                seed.AddedRemarks);
+
+            if (seed.DroppedAtUtc.HasValue)
+            {
+                AddAuditIfMissing(
+                    existingAuditKeys,
+                    auditsToAdd,
+                    student.Id,
+                    section.Id,
+                    AddDropActionType.Dropped,
+                    seed.DroppedAtUtc.Value,
+                    seed.DropReason ?? "Dropped during registration adjustment");
+            }
+        }
+
+        if (enrollmentRecordsToAdd.Count > 0)
+        {
+            await context.EnrollmentRecords.AddRangeAsync(enrollmentRecordsToAdd);
+        }
+
+        if (auditsToAdd.Count > 0)
+        {
+            await context.AddDropAudits.AddRangeAsync(auditsToAdd);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static void AddAuditIfMissing(
+        ISet<string> existingAuditKeys,
+        ICollection<AddDropAudit> auditsToAdd,
+        int studentProfileId,
+        int courseSectionId,
+        AddDropActionType actionType,
+        DateTime actionAtUtc,
+        string remarks)
+    {
+        var auditKey = $"{studentProfileId}:{courseSectionId}:{actionType}:{actionAtUtc.Ticks}";
+        if (!existingAuditKeys.Add(auditKey))
+        {
+            return;
+        }
+
+        auditsToAdd.Add(new AddDropAudit
+        {
+            StudentProfileId = studentProfileId,
+            CourseSectionId = courseSectionId,
+            ActionType = actionType,
+            ActionAtUtc = actionAtUtc,
+            Remarks = remarks
+        });
+    }
+
+    private static bool SchedulesDiffer(IEnumerable<SectionMeeting> existingMeetings, IEnumerable<MeetingSeed> seededMeetings)
+    {
+        var existingMeetingList = existingMeetings.ToList();
+        var seededMeetingList = seededMeetings.ToList();
+
+        if (existingMeetingList.Count != seededMeetingList.Count)
+        {
+            return true;
+        }
+
+        var existingSchedule = existingMeetingList
+            .OrderBy(meeting => meeting.DayOfWeek)
+            .ThenBy(meeting => meeting.StartTime)
+            .Select(meeting => $"{meeting.DayOfWeek}:{meeting.StartTime}:{meeting.EndTime}:{meeting.Venue}")
+            .ToList();
+
+        var seededSchedule = seededMeetingList
+            .OrderBy(meeting => meeting.DayOfWeek)
+            .ThenBy(meeting => new TimeOnly(meeting.StartHour, meeting.StartMinute))
+            .Select(meeting =>
+                $"{meeting.DayOfWeek}:{new TimeOnly(meeting.StartHour, meeting.StartMinute)}:{new TimeOnly(meeting.EndHour, meeting.EndMinute)}:{meeting.Venue}")
+            .ToList();
+
+        return !existingSchedule.SequenceEqual(seededSchedule);
+    }
+
+    private static SectionMeeting CreateMeetingEntity(MeetingSeed seed)
+    {
+        return new SectionMeeting
+        {
+            DayOfWeek = seed.DayOfWeek,
+            StartTime = new TimeOnly(seed.StartHour, seed.StartMinute),
+            EndTime = new TimeOnly(seed.EndHour, seed.EndMinute),
+            Venue = seed.Venue
+        };
+    }
+
+    private static string BuildSectionKey(string semesterCode, string courseCode, string sectionCode)
+        => $"{semesterCode}:{courseCode}:{sectionCode}";
+
+    private static List<CourseSeed> CreateCourseCatalog()
+    {
+        return
+        [
+            new CourseSeed("CSC101", "Introduction to Programming", 3),
+            new CourseSeed("CSC102", "Web Development Fundamentals", 3),
+            new CourseSeed("CSC201", "Object-Oriented Programming", 3),
+            new CourseSeed("CSC230", "Database Systems", 3),
+            new CourseSeed("CSC240", "Computer Networks", 3),
+            new CourseSeed("CSC245", "Cloud Fundamentals", 3),
+            new CourseSeed("CSC310", "Data Structures and Algorithms", 3),
+            new CourseSeed("AIS260", "Applied Business Analytics", 3),
+            new CourseSeed("DAT250", "Data Visualization", 3),
+            new CourseSeed("CLD270", "Cloud Infrastructure Services", 3),
+            new CourseSeed("CYB220", "Fundamentals of Cyber Security", 3),
+            new CourseSeed("MOB230", "Mobile Application Development", 3),
+            new CourseSeed("UXD210", "User Experience Design", 3),
+            new CourseSeed("MAT201", "Discrete Mathematics", 3),
+            new CourseSeed("MAT210", "Applied Calculus", 3),
+            new CourseSeed("STA210", "Business Statistics", 3),
+            new CourseSeed("ENG150", "Academic Writing", 2),
+            new CourseSeed("COM110", "Communication Skills", 2),
+            new CourseSeed("HIS220", "Malaysian Civilisation", 2),
+            new CourseSeed("LAW160", "Business Law", 2),
+            new CourseSeed("ACC110", "Principles of Accounting", 3),
+            new CourseSeed("BUS205", "Entrepreneurship and Innovation", 3),
+            new CourseSeed("ECO120", "Microeconomics", 3),
+            new CourseSeed("FIN215", "Personal Finance and Banking", 3),
+            new CourseSeed("MKT225", "Digital Marketing Fundamentals", 3)
+        ];
+    }
+
+    private static List<SemesterSeed> CreateSemesterSeeds()
+    {
+        return
+        [
+            new SemesterSeed("2024-T3", "Trimester 3 2024", SemesterStatus.Closed, new DateOnly(2024, 9, 1), new DateOnly(2024, 10, 15)),
+            new SemesterSeed("2025-T1", "Trimester 1 2025", SemesterStatus.Closed, new DateOnly(2025, 1, 2), new DateOnly(2025, 2, 15)),
+            new SemesterSeed("2025-T2", "Trimester 2 2025", SemesterStatus.Closed, new DateOnly(2025, 4, 1), new DateOnly(2025, 5, 15)),
+            new SemesterSeed("2025-T3", "Trimester 3 2025", SemesterStatus.Closed, new DateOnly(2025, 9, 1), new DateOnly(2025, 10, 15)),
+            new SemesterSeed("2026-T1", "Trimester 1 2026", SemesterStatus.Closed, new DateOnly(2026, 1, 2), new DateOnly(2026, 2, 15)),
+            new SemesterSeed("2026-T2", "Trimester 2 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 4, 1), new DateOnly(2026, 5, 31))
+        ];
+    }
+
+    private static List<SectionSeed> CreateSectionSeeds()
+    {
+        return
+        [
+            new SectionSeed("2024-T3", "ENG150", "01", 40, "Ms. Farina Halim", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B104")]),
+            new SectionSeed("2024-T3", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room C201")]),
+            new SectionSeed("2024-T3", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 3")]),
+            new SectionSeed("2024-T3", "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
+            new SectionSeed("2024-T3", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
+            new SectionSeed("2024-T3", "COM110", "01", 42, "Ms. Anis Safia", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B106")]),
+            new SectionSeed("2024-T3", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C105")]),
+
+            new SectionSeed("2025-T1", "CSC101", "01", 28, "Dr. Nur Izzati", [Meeting(DayOfWeek.Monday, 8, 30, 10, 30, "Lab 2")]),
+            new SectionSeed("2025-T1", "CSC240", "01", 32, "Mr. Adrian Lee", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C302")]),
+            new SectionSeed("2025-T1", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room A110")]),
+            new SectionSeed("2025-T1", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room B210")]),
+            new SectionSeed("2025-T1", "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 9, 0, 11, 0, "Room A101")]),
+            new SectionSeed("2025-T1", "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B201")]),
+            new SectionSeed("2025-T1", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Room D205")]),
+            new SectionSeed("2025-T1", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Room B106")]),
+
+            new SectionSeed("2025-T2", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B210")]),
+            new SectionSeed("2025-T2", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C201")]),
+            new SectionSeed("2025-T2", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D102")]),
+            new SectionSeed("2025-T2", "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
+            new SectionSeed("2025-T2", "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room B104")]),
+            new SectionSeed("2025-T2", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Studio 1")]),
+            new SectionSeed("2025-T2", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room D210")]),
+            new SectionSeed("2025-T2", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 8")]),
+
+            new SectionSeed("2025-T3", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Lab 3")]),
+            new SectionSeed("2025-T3", "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 4")]),
+            new SectionSeed("2025-T3", "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
+            new SectionSeed("2025-T3", "MOB230", "01", 22, "Ms. Joanne Goh", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 6")]),
+            new SectionSeed("2025-T3", "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room A101")]),
+            new SectionSeed("2025-T3", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
+            new SectionSeed("2025-T3", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C201")]),
+            new SectionSeed("2025-T3", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C105")]),
+            new SectionSeed("2025-T3", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B106")]),
+
+            new SectionSeed("2026-T1", "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Lab 7")]),
+            new SectionSeed("2026-T1", "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Room B201")]),
+            new SectionSeed("2026-T1", "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room D301")]),
+            new SectionSeed("2026-T1", "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Wednesday, 9, 0, 11, 0, "Room B104")]),
+            new SectionSeed("2026-T1", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room A110")]),
+            new SectionSeed("2026-T1", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Studio 1")]),
+            new SectionSeed("2026-T1", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room C201")]),
+            new SectionSeed("2026-T1", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 8")]),
+            new SectionSeed("2026-T1", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room D205")]),
+            new SectionSeed("2026-T1", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room D210")]),
+            new SectionSeed("2026-T1", "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 5")]),
+            new SectionSeed("2026-T1", "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 13, 0, 15, 0, "Lab 9")]),
+
+            new SectionSeed("2026-T2", "CSC101", "01", 25, "Dr. Nur Izzati",
+                [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Lab 2"), Meeting(DayOfWeek.Thursday, 9, 0, 10, 0, "Lab 2")]),
+            new SectionSeed("2026-T2", "MAT201", "01", 20, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B201")]),
+            new SectionSeed("2026-T2", "ENG150", "02", 18, "Mr. Haris Ismail", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C103")]),
+            new SectionSeed("2026-T2", "HIS220", "01", 1, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room A101")]),
+            new SectionSeed("2026-T2", "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 7")]),
+            new SectionSeed("2026-T2", "CSC240", "01", 28, "Mr. Adrian Lee", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room C302")]),
+            new SectionSeed("2026-T2", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Thursday, 13, 0, 15, 0, "Room C201")]),
+            new SectionSeed("2026-T2", "CYB220", "01", 24, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
+            new SectionSeed("2026-T2", "MOB230", "01", 20, "Ms. Joanne Goh", [Meeting(DayOfWeek.Tuesday, 16, 0, 18, 0, "Lab 6")]),
+            new SectionSeed("2026-T2", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room A110")]),
+            new SectionSeed("2026-T2", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Studio 1")]),
+            new SectionSeed("2026-T2", "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Thursday, 10, 0, 12, 0, "Room D301")]),
+            new SectionSeed("2026-T2", "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 4")]),
+            new SectionSeed("2026-T2", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Tuesday, 11, 0, 13, 0, "Lab 3")]),
+            new SectionSeed("2026-T2", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room B210")]),
+            new SectionSeed("2026-T2", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 12, 0, 14, 0, "Room D102")]),
+            new SectionSeed("2026-T2", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Monday, 16, 0, 18, 0, "Lab 8")]),
+            new SectionSeed("2026-T2", "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 9")]),
+            new SectionSeed("2026-T2", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D205")]),
+            new SectionSeed("2026-T2", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Monday, 15, 0, 17, 0, "Room D210")]),
+            new SectionSeed("2026-T2", "CSC245", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 12, 0, 14, 0, "Lab 9")]),
+            new SectionSeed("2026-T2", "CSC310", "01", 24, "Dr. Marcus Lim", [Meeting(DayOfWeek.Thursday, 18, 0, 20, 0, "Lab 4")]),
+            new SectionSeed("2026-T2", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Tuesday, 8, 30, 10, 30, "Room B106")]),
+            new SectionSeed("2026-T2", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 16, 0, 18, 0, "Room C105")])
+        ];
+    }
+
+    private static List<UserSeed> CreateUserSeeds()
+    {
+        return
+        [
+            new UserSeed("Alice Tan", SeedDataDefaults.DemoEmails[0], "ST2026001", "Diploma in Software Engineering", "January 2024"),
+            new UserSeed("Bob Kumar", SeedDataDefaults.DemoEmails[1], "ST2026002", "Diploma in Information Technology", "January 2024"),
+            new UserSeed("Chloe Lim", SeedDataDefaults.DemoEmails[2], "ST2026003", "Diploma in Business Analytics", "January 2025"),
+            new UserSeed("Daniel Wong", SeedDataDefaults.DemoEmails[3], "ST2026004", "Diploma in Cyber Security", "September 2024"),
+            new UserSeed("Farah Hassan", SeedDataDefaults.DemoEmails[4], "ST2026005", "Diploma in Data Analytics", "September 2024")
+        ];
+    }
+
+    private static List<EnrollmentSeed> CreateEnrollmentSeeds()
+    {
+        return
+        [
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "CSC101", "01"), new DateTime(2026, 4, 2, 9, 10, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "ENG150", "02"), new DateTime(2026, 4, 2, 9, 20, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "BUS205", "01"), new DateTime(2026, 4, 3, 8, 55, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "DAT250", "01"), new DateTime(2026, 4, 3, 9, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "HIS220", "01"), new DateTime(2026, 4, 2, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "CYB220", "01"), new DateTime(2026, 4, 3, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "CLD270", "01"), new DateTime(2026, 4, 4, 10, 10, 0, DateTimeKind.Utc), "Online enrollment"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "MOB230", "01"), new DateTime(2026, 4, 4, 8, 30, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "STA210", "01"), new DateTime(2026, 4, 4, 8, 45, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "MKT225", "01"), new DateTime(2026, 4, 4, 9, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "CSC230", "01"), new DateTime(2026, 4, 2, 11, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "CSC245", "01"), new DateTime(2026, 4, 3, 11, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "LAW160", "01"), new DateTime(2026, 4, 3, 11, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "AIS260", "01"), new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "ACC110", "01"), new DateTime(2026, 4, 3, 9, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "FIN215", "01"), new DateTime(2026, 4, 3, 9, 30, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "COM110", "01"), new DateTime(2026, 4, 3, 9, 40, 0, DateTimeKind.Utc), "Online enrollment"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "CSC230", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "MAT201", "01"), new DateTime(2026, 1, 8, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "AIS260", "01"), new DateTime(2026, 1, 9, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 18, 9, 0, 0, DateTimeKind.Utc), "Adjusted study load after timetable review"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "ENG150", "01"), new DateTime(2026, 1, 9, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "BUS205", "01"), new DateTime(2026, 1, 8, 8, 35, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "DAT250", "01"), new DateTime(2026, 1, 8, 8, 50, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "FIN215", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 20, 8, 30, 0, DateTimeKind.Utc), "Replaced with a lower credit elective"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "DAT250", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "FIN215", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T1", "CYB220", "01"), new DateTime(2026, 1, 11, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T1", "CLD270", "01"), new DateTime(2026, 1, 11, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "STA210", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "UXD210", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 24, 11, 0, 0, DateTimeKind.Utc), "Changed focus to project-based electives"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CSC102", "01"), new DateTime(2025, 9, 5, 8, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CSC201", "01"), new DateTime(2025, 9, 5, 8, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CYB220", "01"), new DateTime(2025, 9, 6, 8, 30, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2025, 9, 20, 7, 45, 0, DateTimeKind.Utc), "Moved to a different elective pathway"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "HIS220", "01"), new DateTime(2025, 9, 6, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "ECO120", "01"), new DateTime(2025, 9, 6, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "BUS205", "01"), new DateTime(2025, 9, 6, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "MAT210", "01"), new DateTime(2025, 4, 5, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "ENG150", "01"), new DateTime(2025, 4, 5, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "MKT225", "01"), new DateTime(2025, 4, 5, 10, 30, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2024-T3", "BUS205", "01"), new DateTime(2024, 9, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T1", "CSC101", "01"), new DateTime(2025, 1, 6, 11, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T1", "ACC110", "01"), new DateTime(2025, 1, 6, 11, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T3", "LAW160", "01"), new DateTime(2025, 9, 7, 11, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T2", "ECO120", "01"), new DateTime(2025, 4, 6, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2025, 4, 18, 10, 0, 0, DateTimeKind.Utc), "Changed elective selection after program review"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T1", "FIN215", "01"), new DateTime(2025, 1, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T3", "COM110", "01"), new DateTime(2025, 9, 9, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week")
+        ];
+    }
+
+    private static MeetingSeed Meeting(
+        DayOfWeek dayOfWeek,
+        int startHour,
+        int startMinute,
+        int endHour,
+        int endMinute,
+        string venue)
+    {
+        return new MeetingSeed(dayOfWeek, startHour, startMinute, endHour, endMinute, venue);
+    }
+
+    private sealed record CourseSeed(string Code, string Title, int CreditHours);
+
+    private sealed record SemesterSeed(
+        string Code,
+        string Name,
+        SemesterStatus Status,
+        DateOnly EnrollmentStartDate,
+        DateOnly EnrollmentEndDate);
+
+    private sealed record UserSeed(
+        string DisplayName,
+        string Email,
+        string StudentNumber,
+        string ProgramName,
+        string IntakeLabel);
+
+    private sealed record MeetingSeed(
+        DayOfWeek DayOfWeek,
+        int StartHour,
+        int StartMinute,
+        int EndHour,
+        int EndMinute,
+        string Venue);
+
+    private sealed record SectionSeed(
+        string SemesterCode,
+        string CourseCode,
+        string SectionCode,
+        int Capacity,
+        string InstructorName,
+        IReadOnlyList<MeetingSeed> Meetings);
+
+    private sealed record EnrollmentSeed(
+        string StudentEmail,
+        string SectionKey,
+        DateTime AddedAtUtc,
+        string AddedRemarks,
+        DateTime? DroppedAtUtc = null,
+        string? DropReason = null);
 }

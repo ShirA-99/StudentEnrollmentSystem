@@ -10,6 +10,8 @@ public class CurrentEnrollmentViewModel
 
     public string SectionCode { get; set; } = string.Empty;
 
+    public string InstructorName { get; set; } = string.Empty;
+
     public string ScheduleSummary { get; set; } = string.Empty;
 
     public int CreditHours { get; set; }
