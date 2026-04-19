@@ -31,6 +31,7 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddScoped<EnrollmentService>();
 builder.Services.AddScoped<AddDropService>();
+builder.Services.AddScoped<ProfileProtectionService>();
 
 var app = builder.Build();
 

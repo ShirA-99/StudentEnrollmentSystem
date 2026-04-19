@@ -170,6 +170,22 @@ body::after {
   background: linear-gradient(90deg, var(--portal-accent), var(--portal-secondary));
 }
 
+.portal-user-link {
+  position: relative;
+  color: var(--portal-primary-dark) !important;
+}
+
+.portal-user-link::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(15, 108, 139, 0.22);
+}
+
 .portal-user-pill {
   display: inline-flex;
   align-items: center;
@@ -510,6 +526,27 @@ body::after {
 .auth-helper-list {
   display: grid;
   gap: 0.75rem;
+}
+
+.profile-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.profile-nav {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-nav .btn.active {
+  color: #fff;
+  background: var(--portal-primary);
+  border-color: var(--portal-primary);
+}
+
+.profile-card {
+  scroll-margin-top: 6rem;
 }
 
 .portal-table thead th {

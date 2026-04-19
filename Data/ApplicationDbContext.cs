@@ -22,6 +22,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<ApplicationUser>(entity =>
         {
             entity.Property(user => user.DisplayName).HasMaxLength(120);
+            entity.Property(user => user.Address).HasMaxLength(200);
+            entity.Property(user => user.Postcode).HasMaxLength(20);
+            entity.Property(user => user.City).HasMaxLength(100);
+            entity.Property(user => user.State).HasMaxLength(100);
+            entity.Property(user => user.Country).HasMaxLength(100);
+            entity.Property(user => user.BankName).HasMaxLength(120);
+            entity.Property(user => user.EncryptedBankAccountNumber).HasMaxLength(512);
+            entity.Property(user => user.EncryptedBankAccountHolderName).HasMaxLength(512);
         });
 
         builder.Entity<StudentProfile>(entity =>

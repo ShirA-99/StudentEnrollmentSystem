@@ -9,7 +9,9 @@
     var currentUser = await UserManager.GetUserAsync(User);
 
     <li class="nav-item">
-        <span class="nav-link portal-user-pill">@(currentUser?.DisplayName ?? User.Identity?.Name)</span>
+        <a class="nav-link portal-user-pill portal-user-link" asp-controller="Account" asp-action="Profile">
+            @(currentUser?.DisplayName ?? User.Identity?.Name)
+        </a>
     </li>
     <li class="nav-item">
         <form class="d-flex" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home")" method="post">
