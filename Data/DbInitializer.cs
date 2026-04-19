@@ -251,7 +251,7 @@ public static class DbInitializer
                     ProgramCode = seed.ProgramCode,
                     IntakeLabel = seed.IntakeLabel,
                     CurrentSemesterId = semesters[seed.CurrentSemesterCode].Id
-                });
+                };
 
                 await context.StudentProfiles.AddAsync(profile);
                 existingProfiles.Add(profile);
