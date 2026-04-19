@@ -1,0 +1,74 @@
+@model StudentEnrollmentSystem.Models.TeachingEvaluation
+
+@{
+    ViewData["Title"] = "Student Evaluation of Teaching";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2>Student Evaluation of Teaching</h2>
+
+                    <form asp-action="Create" method="post">
+                        <div class="mb-3">
+                            <label asp-for="StudentName" class="form-label"></label>
+                            <input asp-for="StudentName" class="form-control" />
+                            <span asp-validation-for="StudentName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="StudentId" class="form-label"></label>
+                            <input asp-for="StudentId" class="form-control" />
+                            <span asp-validation-for="StudentId" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CourseCode" class="form-label"></label>
+                            <input asp-for="CourseCode" class="form-control" />
+                            <span asp-validation-for="CourseCode" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LecturerName" class="form-label"></label>
+                            <input asp-for="LecturerName" class="form-control" />
+                            <span asp-validation-for="LecturerName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TeachingClarity" class="form-label"></label>
+                            <input asp-for="TeachingClarity" class="form-control" type="number" min="1" max="5" />
+                            <span asp-validation-for="TeachingClarity" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Preparedness" class="form-label"></label>
+                            <input asp-for="Preparedness" class="form-control" type="number" min="1" max="5" />
+                            <span asp-validation-for="Preparedness" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Engagement" class="form-label"></label>
+                            <input asp-for="Engagement" class="form-control" type="number" min="1" max="5" />
+                            <span asp-validation-for="Engagement" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Comments" class="form-label"></label>
+                            <textarea asp-for="Comments" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Comments" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Submit Evaluation</button>
+                        <a asp-controller="Enquiry" asp-action="Index" class="btn btn-secondary">Back</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

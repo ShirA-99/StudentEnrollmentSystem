@@ -9,6 +9,7 @@ namespace StudentEnrollmentSystem.Models
 
         [Required]
         [StringLength(100)]
+        [Display(Name = "Full Name")]
         public string Name { get; set; } = string.Empty;
 
         [Required]

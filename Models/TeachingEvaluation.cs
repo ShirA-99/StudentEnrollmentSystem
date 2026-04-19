@@ -9,22 +9,27 @@ namespace StudentEnrollmentSystem.Models
 
         [Required]
         [StringLength(100)]
+        [Display(Name = "Student Name")]
         public string StudentName { get; set; } = string.Empty;
 
         [Required]
         [StringLength(20)]
+        [Display(Name = "Student ID")]
         public string StudentId { get; set; } = string.Empty;
 
         [Required]
         [StringLength(20)]
+        [Display(Name = "Course Code")]
         public string CourseCode { get; set; } = string.Empty;
 
         [Required]
         [StringLength(100)]
+        [Display(Name = "Lecturer Name")]
         public string LecturerName { get; set; } = string.Empty;
 
         [Required]
         [Range(1, 5)]
+        [Display(Name = "Teaching Clarity")]
         public int TeachingClarity { get; set; }
 
         [Required]

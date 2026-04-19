@@ -1,0 +1,55 @@
+@model StudentEnrollmentSystem.Models.ContactUsMessage
+
+@{
+    ViewData["Title"] = "Contact Us";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card enquiry-card">
+                <div class="card-body">
+                    <h2 class="enquiry-page-title">Contact Us</h2>
+                    <p class="enquiry-page-subtitle">
+                        Submit your question or issue to the support team.
+                    </p>
+
+                    <form asp-action="ContactUs" method="post" class="enquiry-form">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Subject" class="form-label"></label>
+                            <input asp-for="Subject" class="form-control" />
+                            <span asp-validation-for="Subject" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Message" class="form-label"></label>
+                            <textarea asp-for="Message" class="form-control"></textarea>
+                            <span asp-validation-for="Message" class="text-danger"></span>
+                        </div>
+
+                        <div class="enquiry-actions">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4">Submit</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">Back</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
