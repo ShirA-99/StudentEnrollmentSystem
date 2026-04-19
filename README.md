@@ -59,16 +59,26 @@ cd StudentEnrollmentSystem
 
 After cloning, switch to your assigned branch.
 
+Before you continue work on any feature branch, always bring in the latest `main` first so your branch stays up to date with the shared project.
+
 Examples:
 
 ```powershell
 git fetch origin
 git checkout feature/enquiry-evaluation
+git checkout main
+git pull origin main
+git checkout feature/enquiry-evaluation
+git merge main
 ```
 
 ```powershell
 git fetch origin
 git checkout feature/payment
+git checkout main
+git pull origin main
+git checkout feature/payment
+git merge main
 ```
 
 If Git tells you the branch does not exist locally yet, that is normal. `git checkout` will create the local copy from GitHub.
@@ -138,7 +148,7 @@ If the app fails to start with a database connection error, check:
 
 ## Everyday Git Workflow
 
-Use this every time before starting work:
+Use this every time before starting or continuing work:
 
 ```powershell
 git checkout main
@@ -184,5 +194,5 @@ git push
 - Reuse the shared models and `ApplicationDbContext` instead of creating duplicate tables.
 - Keep your work inside your own controller and view folders as much as possible.
 - Do not commit directly into another member's branch.
-- Pull from `main` regularly so your branch stays updated.
+- Before continuing work in your branch, always pull the latest `main` and merge it into your branch first.
 - If you are unsure where your feature should go, start from the placeholder controller and matching view folder already prepared for you.
