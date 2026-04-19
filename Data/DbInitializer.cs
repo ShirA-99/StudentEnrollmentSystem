@@ -29,6 +29,7 @@ public static class DbInitializer
             {
                 existingCourse.Title = seed.Title;
                 existingCourse.CreditHours = seed.CreditHours;
+                existingCourse.EligibleProgrammeCodes = seed.EligibleProgrammeCodes;
             }
             else
             {
@@ -36,7 +37,8 @@ public static class DbInitializer
                 {
                     Code = seed.Code,
                     Title = seed.Title,
-                    CreditHours = seed.CreditHours
+                    CreditHours = seed.CreditHours,
+                    EligibleProgrammeCodes = seed.EligibleProgrammeCodes
                 });
             }
         }
@@ -67,6 +69,8 @@ public static class DbInitializer
                 existingSemester.Status = seed.Status;
                 existingSemester.EnrollmentStartDate = seed.EnrollmentStartDate;
                 existingSemester.EnrollmentEndDate = seed.EnrollmentEndDate;
+                existingSemester.SemesterStartDate = seed.SemesterStartDate;
+                existingSemester.AddDropEndDate = seed.AddDropEndDate;
             }
             else
             {
@@ -76,7 +80,9 @@ public static class DbInitializer
                     Name = seed.Name,
                     Status = seed.Status,
                     EnrollmentStartDate = seed.EnrollmentStartDate,
-                    EnrollmentEndDate = seed.EnrollmentEndDate
+                    EnrollmentEndDate = seed.EnrollmentEndDate,
+                    SemesterStartDate = seed.SemesterStartDate,
+                    AddDropEndDate = seed.AddDropEndDate
                 });
             }
         }
@@ -167,7 +173,7 @@ public static class DbInitializer
 
     private static async Task EnsureStudentProfilesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
-        var activeSemester = await context.Semesters.SingleAsync(semester => semester.Code == SemesterCode(2026, 2));
+        var semesters = await context.Semesters.ToDictionaryAsync(semester => semester.Code);
         var users = await userManager.Users.ToDictionaryAsync(user => user.Email!);
         var existingProfiles = await context.StudentProfiles.ToDictionaryAsync(profile => profile.Email);
 
@@ -185,8 +191,9 @@ public static class DbInitializer
                 profile.FullName = seed.DisplayName;
                 profile.Email = seed.Email;
                 profile.ProgramName = seed.ProgramName;
+                profile.ProgramCode = seed.ProgramCode;
                 profile.IntakeLabel = seed.IntakeLabel;
-                profile.CurrentSemesterId = activeSemester.Id;
+                profile.CurrentSemesterId = semesters[seed.CurrentSemesterCode].Id;
             }
             else
             {
@@ -197,8 +204,9 @@ public static class DbInitializer
                     FullName = seed.DisplayName,
                     Email = seed.Email,
                     ProgramName = seed.ProgramName,
+                    ProgramCode = seed.ProgramCode,
                     IntakeLabel = seed.IntakeLabel,
-                    CurrentSemesterId = activeSemester.Id
+                    CurrentSemesterId = semesters[seed.CurrentSemesterCode].Id
                 });
             }
         }
@@ -377,31 +385,31 @@ public static class DbInitializer
     {
         return
         [
-            new CourseSeed("CSC101", "Introduction to Programming", 3),
-            new CourseSeed("CSC102", "Web Development Fundamentals", 3),
-            new CourseSeed("CSC201", "Object-Oriented Programming", 3),
-            new CourseSeed("CSC230", "Database Systems", 3),
-            new CourseSeed("CSC240", "Computer Networks", 3),
-            new CourseSeed("CSC245", "Cloud Fundamentals", 3),
-            new CourseSeed("CSC310", "Data Structures and Algorithms", 3),
-            new CourseSeed("AIS260", "Applied Business Analytics", 3),
-            new CourseSeed("DAT250", "Data Visualization", 3),
-            new CourseSeed("CLD270", "Cloud Infrastructure Services", 3),
-            new CourseSeed("CYB220", "Fundamentals of Cyber Security", 3),
-            new CourseSeed("MOB230", "Mobile Application Development", 3),
-            new CourseSeed("UXD210", "User Experience Design", 3),
-            new CourseSeed("MAT201", "Discrete Mathematics", 3),
-            new CourseSeed("MAT210", "Applied Calculus", 3),
-            new CourseSeed("STA210", "Business Statistics", 3),
-            new CourseSeed("ENG150", "Academic Writing", 2),
-            new CourseSeed("COM110", "Communication Skills", 2),
-            new CourseSeed("HIS220", "Malaysian Civilisation", 2),
-            new CourseSeed("LAW160", "Business Law", 2),
-            new CourseSeed("ACC110", "Principles of Accounting", 3),
-            new CourseSeed("BUS205", "Entrepreneurship and Innovation", 3),
-            new CourseSeed("ECO120", "Microeconomics", 3),
-            new CourseSeed("FIN215", "Personal Finance and Banking", 3),
-            new CourseSeed("MKT225", "Digital Marketing Fundamentals", 3)
+            new CourseSeed("CSC101", "Introduction to Programming", 3, "SE,IT"),
+            new CourseSeed("CSC102", "Web Development Fundamentals", 3, "SE,IT"),
+            new CourseSeed("CSC201", "Object-Oriented Programming", 3, "SE"),
+            new CourseSeed("CSC230", "Database Systems", 3, "SE,IT,DA"),
+            new CourseSeed("CSC240", "Computer Networks", 3, "IT,CY"),
+            new CourseSeed("CSC245", "Cloud Fundamentals", 3, "IT,CY"),
+            new CourseSeed("CSC310", "Data Structures and Algorithms", 3, "SE"),
+            new CourseSeed("AIS260", "Applied Business Analytics", 3, "BA,DA"),
+            new CourseSeed("DAT250", "Data Visualization", 3, "BA,DA"),
+            new CourseSeed("CLD270", "Cloud Infrastructure Services", 3, "IT,CY"),
+            new CourseSeed("CYB220", "Fundamentals of Cyber Security", 3, "IT,CY"),
+            new CourseSeed("MOB230", "Mobile Application Development", 3, "SE"),
+            new CourseSeed("UXD210", "User Experience Design", 3, "SE,DA"),
+            new CourseSeed("MAT201", "Discrete Mathematics", 3, string.Empty),
+            new CourseSeed("MAT210", "Applied Calculus", 3, string.Empty),
+            new CourseSeed("STA210", "Business Statistics", 3, "BA,DA"),
+            new CourseSeed("ENG150", "Academic Writing", 2, string.Empty),
+            new CourseSeed("COM110", "Communication Skills", 2, string.Empty),
+            new CourseSeed("HIS220", "Malaysian Civilisation", 2, string.Empty),
+            new CourseSeed("LAW160", "Business Law", 2, "BA"),
+            new CourseSeed("ACC110", "Principles of Accounting", 3, "BA,DA"),
+            new CourseSeed("BUS205", "Entrepreneurship and Innovation", 3, "BA"),
+            new CourseSeed("ECO120", "Microeconomics", 3, "BA,DA"),
+            new CourseSeed("FIN215", "Personal Finance and Banking", 3, "BA,DA"),
+            new CourseSeed("MKT225", "Digital Marketing Fundamentals", 3, "BA,DA")
         ];
     }
 
@@ -409,12 +417,13 @@ public static class DbInitializer
     {
         return
         [
-            new SemesterSeed(SemesterCode(2024, 3), "Semester 3 2024", SemesterStatus.Closed, new DateOnly(2024, 9, 1), new DateOnly(2024, 10, 15)),
-            new SemesterSeed(SemesterCode(2025, 1), "Semester 1 2025", SemesterStatus.Closed, new DateOnly(2025, 1, 2), new DateOnly(2025, 2, 15)),
-            new SemesterSeed(SemesterCode(2025, 2), "Semester 2 2025", SemesterStatus.Closed, new DateOnly(2025, 4, 1), new DateOnly(2025, 5, 15)),
-            new SemesterSeed(SemesterCode(2025, 3), "Semester 3 2025", SemesterStatus.Closed, new DateOnly(2025, 9, 1), new DateOnly(2025, 10, 15)),
-            new SemesterSeed(SemesterCode(2026, 1), "Semester 1 2026", SemesterStatus.Closed, new DateOnly(2026, 1, 2), new DateOnly(2026, 2, 15)),
-            new SemesterSeed(SemesterCode(2026, 2), "Semester 2 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 4, 1), new DateOnly(2026, 5, 31))
+            new SemesterSeed(SemesterCode(2024, 3), "Semester 3 2024", SemesterStatus.Closed, new DateOnly(2024, 8, 12), new DateOnly(2024, 8, 30), new DateOnly(2024, 9, 2), new DateOnly(2024, 9, 20)),
+            new SemesterSeed(SemesterCode(2025, 1), "Semester 1 2025", SemesterStatus.Closed, new DateOnly(2024, 12, 9), new DateOnly(2025, 1, 3), new DateOnly(2025, 1, 6), new DateOnly(2025, 1, 24)),
+            new SemesterSeed(SemesterCode(2025, 2), "Semester 2 2025", SemesterStatus.Closed, new DateOnly(2025, 3, 10), new DateOnly(2025, 3, 28), new DateOnly(2025, 4, 1), new DateOnly(2025, 4, 18)),
+            new SemesterSeed(SemesterCode(2025, 3), "Semester 3 2025", SemesterStatus.Closed, new DateOnly(2025, 8, 11), new DateOnly(2025, 8, 29), new DateOnly(2025, 9, 1), new DateOnly(2025, 9, 19)),
+            new SemesterSeed(SemesterCode(2026, 1), "Semester 1 2026", SemesterStatus.Closed, new DateOnly(2025, 12, 8), new DateOnly(2026, 1, 2), new DateOnly(2026, 1, 5), new DateOnly(2026, 1, 23)),
+            new SemesterSeed(SemesterCode(2026, 2), "Semester 2 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 3, 9), new DateOnly(2026, 4, 10), new DateOnly(2026, 4, 13), new DateOnly(2026, 5, 1)),
+            new SemesterSeed(SemesterCode(2026, 3), "Semester 3 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 4, 14), new DateOnly(2026, 5, 22), new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 19))
         ];
     }
 
@@ -426,6 +435,7 @@ public static class DbInitializer
         var s2025s3 = SemesterCode(2025, 3);
         var s2026s1 = SemesterCode(2026, 1);
         var s2026s2 = SemesterCode(2026, 2);
+        var s2026s3 = SemesterCode(2026, 3);
 
         return
         [
@@ -502,7 +512,20 @@ public static class DbInitializer
             new SectionSeed(s2026s2, "CSC245", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 12, 0, 14, 0, "Lab 9")]),
             new SectionSeed(s2026s2, "CSC310", "01", 24, "Dr. Marcus Lim", [Meeting(DayOfWeek.Thursday, 18, 0, 20, 0, "Lab 4")]),
             new SectionSeed(s2026s2, "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Tuesday, 8, 30, 10, 30, "Room B106")]),
-            new SectionSeed(s2026s2, "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 16, 0, 18, 0, "Room C105")])
+            new SectionSeed(s2026s2, "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 16, 0, 18, 0, "Room C105")]),
+
+            new SectionSeed(s2026s3, "AIS260", "01", 28, "Mr. Edwin Ng", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room D301")]),
+            new SectionSeed(s2026s3, "DAT250", "01", 30, "Dr. Ravi Nair", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Lab 8")]),
+            new SectionSeed(s2026s3, "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Room A110")]),
+            new SectionSeed(s2026s3, "ACC110", "01", 38, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Wednesday, 9, 0, 11, 0, "Room B210")]),
+            new SectionSeed(s2026s3, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C201")]),
+            new SectionSeed(s2026s3, "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room D205")]),
+            new SectionSeed(s2026s3, "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Room D210")]),
+            new SectionSeed(s2026s3, "ECO120", "01", 40, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 9, 0, 11, 0, "Room D102")]),
+            new SectionSeed(s2026s3, "ENG150", "01", 40, "Ms. Farina Halim", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room B104")]),
+            new SectionSeed(s2026s3, "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 11, 30, 13, 30, "Room B106")]),
+            new SectionSeed(s2026s3, "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room A204")]),
+            new SectionSeed(s2026s3, "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room A101")])
         ];
     }
 
@@ -510,11 +533,11 @@ public static class DbInitializer
     {
         return
         [
-            new UserSeed("Alice Tan", SeedDataDefaults.DemoEmails[0], "ST2026001", "Diploma in Software Engineering", "January 2024"),
-            new UserSeed("Bob Kumar", SeedDataDefaults.DemoEmails[1], "ST2026002", "Diploma in Information Technology", "January 2024"),
-            new UserSeed("Chloe Lim", SeedDataDefaults.DemoEmails[2], "ST2026003", "Diploma in Business Analytics", "January 2025"),
-            new UserSeed("Daniel Wong", SeedDataDefaults.DemoEmails[3], "ST2026004", "Diploma in Cyber Security", "September 2024"),
-            new UserSeed("Farah Hassan", SeedDataDefaults.DemoEmails[4], "ST2026005", "Diploma in Data Analytics", "September 2024")
+            new UserSeed("Alice Tan", SeedDataDefaults.DemoEmails[0], "ST2026001", "Diploma in Software Engineering", "SE", "January 2024", SemesterCode(2026, 2)),
+            new UserSeed("Bob Kumar", SeedDataDefaults.DemoEmails[1], "ST2026002", "Diploma in Information Technology", "IT", "January 2024", SemesterCode(2026, 2)),
+            new UserSeed("Chloe Lim", SeedDataDefaults.DemoEmails[2], "ST2026003", "Diploma in Business Analytics", "BA", "January 2025", SemesterCode(2026, 3)),
+            new UserSeed("Daniel Wong", SeedDataDefaults.DemoEmails[3], "ST2026004", "Diploma in Cyber Security", "CY", "September 2024", SemesterCode(2026, 2)),
+            new UserSeed("Farah Hassan", SeedDataDefaults.DemoEmails[4], "ST2026005", "Diploma in Data Analytics", "DA", "September 2024", SemesterCode(2026, 3))
         ];
     }
 
@@ -526,30 +549,30 @@ public static class DbInitializer
         var s2025s3 = SemesterCode(2025, 3);
         var s2026s1 = SemesterCode(2026, 1);
         var s2026s2 = SemesterCode(2026, 2);
+        var s2026s3 = SemesterCode(2026, 3);
 
         return
         [
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "CSC101", "01"), new DateTime(2026, 4, 2, 9, 10, 0, DateTimeKind.Utc), "Online enrollment"),
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "ENG150", "02"), new DateTime(2026, 4, 2, 9, 20, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "BUS205", "01"), new DateTime(2026, 4, 3, 8, 55, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "DAT250", "01"), new DateTime(2026, 4, 3, 9, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "CSC201", "01"), new DateTime(2026, 4, 3, 8, 55, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "COM110", "01"), new DateTime(2026, 4, 3, 9, 25, 0, DateTimeKind.Utc), "Online enrollment"),
 
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "HIS220", "01"), new DateTime(2026, 4, 2, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "CYB220", "01"), new DateTime(2026, 4, 3, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "CSC240", "01"), new DateTime(2026, 4, 3, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "CLD270", "01"), new DateTime(2026, 4, 4, 10, 10, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "MOB230", "01"), new DateTime(2026, 4, 4, 8, 30, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "STA210", "01"), new DateTime(2026, 4, 4, 8, 45, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "MKT225", "01"), new DateTime(2026, 4, 4, 9, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s3, "AIS260", "01"), new DateTime(2026, 4, 18, 8, 30, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s3, "STA210", "01"), new DateTime(2026, 4, 18, 8, 45, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s3, "COM110", "01"), new DateTime(2026, 4, 18, 9, 5, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC230", "01"), new DateTime(2026, 4, 2, 11, 5, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC245", "01"), new DateTime(2026, 4, 3, 11, 15, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "LAW160", "01"), new DateTime(2026, 4, 3, 11, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CYB220", "01"), new DateTime(2026, 4, 2, 11, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC240", "01"), new DateTime(2026, 4, 3, 11, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC245", "01"), new DateTime(2026, 4, 3, 11, 25, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "AIS260", "01"), new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "ACC110", "01"), new DateTime(2026, 4, 3, 9, 15, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "FIN215", "01"), new DateTime(2026, 4, 3, 9, 30, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "COM110", "01"), new DateTime(2026, 4, 3, 9, 40, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s3, "DAT250", "01"), new DateTime(2026, 4, 18, 12, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s3, "FIN215", "01"), new DateTime(2026, 4, 18, 12, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s3, "ENG150", "01"), new DateTime(2026, 4, 18, 12, 30, 0, DateTimeKind.Utc), "Online enrollment"),
 
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "CSC230", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
             new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "MAT201", "01"), new DateTime(2026, 1, 8, 9, 10, 0, DateTimeKind.Utc), "Registered during semester registration"),
@@ -605,21 +628,25 @@ public static class DbInitializer
         return new MeetingSeed(dayOfWeek, startHour, startMinute, endHour, endMinute, venue);
     }
 
-    private sealed record CourseSeed(string Code, string Title, int CreditHours);
+    private sealed record CourseSeed(string Code, string Title, int CreditHours, string EligibleProgrammeCodes);
 
     private sealed record SemesterSeed(
         string Code,
         string Name,
         SemesterStatus Status,
         DateOnly EnrollmentStartDate,
-        DateOnly EnrollmentEndDate);
+        DateOnly EnrollmentEndDate,
+        DateOnly SemesterStartDate,
+        DateOnly AddDropEndDate);
 
     private sealed record UserSeed(
         string DisplayName,
         string Email,
         string StudentNumber,
         string ProgramName,
-        string IntakeLabel);
+        string ProgramCode,
+        string IntakeLabel,
+        string CurrentSemesterCode);
 
     private sealed record MeetingSeed(
         DayOfWeek DayOfWeek,

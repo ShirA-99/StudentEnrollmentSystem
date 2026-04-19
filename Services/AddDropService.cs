@@ -9,16 +9,17 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
 {
     public async Task<AddDropIndexViewModel> GetDashboardAsync(string userId)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var student = await context.StudentProfiles
             .AsNoTracking()
             .Include(profile => profile.CurrentSemester)
             .SingleOrDefaultAsync(profile => profile.ApplicationUserId == userId)
             ?? throw new InvalidOperationException("No student profile was found for the signed-in account.");
 
-        var activeSemester = await FindActiveSemesterAsync();
-        var referenceSemester = await GetReferenceSemesterAsync(student, activeSemester);
+        var referenceSemester = await GetReferenceSemesterAsync(student);
         var catalog = await enrollmentService.GetEnrollmentCatalogAsync(userId);
         var currentSemesterId = referenceSemester?.Id;
+        var state = referenceSemester is null ? null : SemesterTimeline.Describe(referenceSemester, today);
 
         var currentEnrollments = currentSemesterId is int semesterId
             ? await context.EnrollmentRecords
@@ -52,7 +53,9 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             StudentNumber = student.StudentNumber,
             ProgramName = student.ProgramName,
             SemesterName = catalog.SemesterName,
-            RegistrationWindow = catalog.RegistrationWindow,
+            RegistrationWindow = referenceSemester is null
+                ? catalog.RegistrationWindow
+                : SemesterTimeline.FormatWindowSummary(referenceSemester),
             ActiveEnrollmentCount = currentEnrollments.Count,
             CurrentCreditHours = currentEnrollments.Sum(record => record.CourseSection.Course.CreditHours),
             AvailableSectionCount = catalog.AvailableSections.Count,
@@ -60,8 +63,10 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             RecentActivityText = latestHistoryEvent is null
                 ? $"No registration adjustments have been recorded for {catalog.SemesterName} yet."
                 : $"{latestHistoryEvent.ActionType} {latestHistoryEvent.CourseSection.Course.Code} section {latestHistoryEvent.CourseSection.SectionCode} on {latestHistoryEvent.ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
-            IsRegistrationOpen = catalog.IsRegistrationOpen,
-            RegistrationStatusMessage = catalog.RegistrationStatusMessage,
+            IsRegistrationOpen = state?.IsAddDropOpen == true,
+            RegistrationStatusMessage = state is null
+                ? "We could not determine the add / drop period for your account."
+                : BuildAddDropStatusMessage(state),
             AvailableSections = catalog.AvailableSections,
             CurrentEnrollments = currentEnrollments.Select(record => new CurrentEnrollmentViewModel
             {
@@ -78,7 +83,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
     }
 
     public Task<OperationResult> AddCourseAsync(string userId, int sectionId)
-        => enrollmentService.EnrollAsync(userId, sectionId);
+        => enrollmentService.AddDuringAddDropAsync(userId, sectionId);
 
     public async Task<OperationResult> DropCourseAsync(string userId, int enrollmentId, string remarks)
     {
@@ -87,16 +92,25 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             return OperationResult.Failure("A drop reason is required before removing a course.");
         }
 
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var student = await context.StudentProfiles
+            .AsNoTracking()
+            .Include(profile => profile.CurrentSemester)
             .SingleOrDefaultAsync(profile => profile.ApplicationUserId == userId)
             ?? throw new InvalidOperationException("No student profile was found for the signed-in account.");
 
-        var activeSemester = await FindActiveSemesterAsync();
+        var referenceSemester = await GetReferenceSemesterAsync(student);
 
-        if (activeSemester is null)
+        if (referenceSemester is null)
         {
-            return OperationResult.Failure(
-                "Add/drop is currently closed. You can still review your timetable, but changes cannot be submitted right now.");
+            return OperationResult.Failure("We could not determine the semester for this add / drop request.");
+        }
+
+        var state = SemesterTimeline.Describe(referenceSemester, today);
+
+        if (!state.IsAddDropOpen)
+        {
+            return OperationResult.Failure(BuildAddDropUnavailableMessage(state));
         }
 
         var enrollment = await context.EnrollmentRecords
@@ -106,7 +120,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
                 record.Id == enrollmentId &&
                 record.StudentProfileId == student.Id &&
                 record.Status == EnrollmentStatus.Enrolled &&
-                record.CourseSection.SemesterId == activeSemester.Id);
+                record.CourseSection.SemesterId == referenceSemester.Id);
 
         if (enrollment is null)
         {
@@ -176,25 +190,8 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         };
     }
 
-    private Task<Semester?> FindActiveSemesterAsync()
+    private async Task<Semester?> GetReferenceSemesterAsync(StudentProfile student)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-
-        return context.Semesters
-            .AsNoTracking()
-            .SingleOrDefaultAsync(item =>
-                item.Status == SemesterStatus.OpenForEnrollment &&
-                item.EnrollmentStartDate <= today &&
-                item.EnrollmentEndDate >= today);
-    }
-
-    private async Task<Semester?> GetReferenceSemesterAsync(StudentProfile student, Semester? activeSemester)
-    {
-        if (activeSemester is not null)
-        {
-            return activeSemester;
-        }
-
         if (student.CurrentSemester is not null)
         {
             return student.CurrentSemester;
@@ -203,7 +200,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         var latestEnrollmentSemesterId = await context.EnrollmentRecords
             .AsNoTracking()
             .Where(record => record.StudentProfileId == student.Id)
-            .OrderByDescending(record => record.CourseSection.Semester.EnrollmentEndDate)
+            .OrderByDescending(record => record.CourseSection.Semester.AddDropEndDate)
             .Select(record => (int?)record.CourseSection.SemesterId)
             .FirstOrDefaultAsync();
 
@@ -216,7 +213,35 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
 
         return await context.Semesters
             .AsNoTracking()
-            .OrderByDescending(semester => semester.EnrollmentEndDate)
+            .OrderByDescending(semester => semester.AddDropEndDate)
             .FirstOrDefaultAsync();
+    }
+
+    private static string BuildAddDropStatusMessage(SemesterAccessState state)
+    {
+        return state.Phase switch
+        {
+            SemesterLifecyclePhase.AddDrop =>
+                $"Add / Drop for {state.Semester.Name} is open until {state.Semester.AddDropEndDate:dd MMM yyyy}. Only sections approved for your programme can be added.",
+            SemesterLifecyclePhase.Enrollment =>
+                $"Add / Drop for {state.Semester.Name} starts on {state.Semester.SemesterStartDate:dd MMM yyyy}, after enrollment closes.",
+            SemesterLifecyclePhase.Planning =>
+                $"This semester is still in planning mode. Enrollment opens on {state.Semester.EnrollmentStartDate:dd MMM yyyy}, and Add / Drop starts after classes begin.",
+            _ =>
+                $"Add / Drop for {state.Semester.Name} has closed. The deadline passed on {state.Semester.AddDropEndDate:dd MMM yyyy}."
+        };
+    }
+
+    private static string BuildAddDropUnavailableMessage(SemesterAccessState state)
+    {
+        return state.Phase switch
+        {
+            SemesterLifecyclePhase.Enrollment =>
+                $"Add / Drop for {state.Semester.Name} has not started yet. It opens on {state.Semester.SemesterStartDate:dd MMM yyyy} after classes begin.",
+            SemesterLifecyclePhase.Planning =>
+                $"Add / Drop for {state.Semester.Name} is not available yet because enrollment has not started.",
+            _ =>
+                $"Add / Drop for {state.Semester.Name} is closed. The deadline passed on {state.Semester.AddDropEndDate:dd MMM yyyy}."
+        };
     }
 }

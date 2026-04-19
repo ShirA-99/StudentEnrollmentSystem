@@ -27,7 +27,7 @@
         <div class="container-xl">
             <span>Malaysia Student Self-Service Portal</span>
             <span class="portal-topbar-separator">|</span>
-            <span>Semester registration, add / drop, timetable and statement access</span>
+            <span>Enrollment, add / drop, timetable and statement access</span>
         </div>
     </div>
     <header>
@@ -51,7 +51,7 @@
                         @if (isSignedIn)
                         {
                             <li class="nav-item">
-                                <a class="@NavClass("Enrollment", "Index")" asp-controller="Enrollment" asp-action="Index">Semester Registration</a>
+                                <a class="@NavClass("Enrollment", "Index")" asp-controller="Enrollment" asp-action="Index">Enrollment</a>
                             </li>
                             <li class="nav-item">
                                 <a class="@NavClass("AddDrop", "Index")" asp-controller="AddDrop" asp-action="Index">Add / Drop</a>
@@ -90,18 +90,6 @@
             @RenderBody()
         </main>
     </div>
-
-    <footer class="footer portal-footer">
-        <div class="container-xl portal-footer-grid py-4">
-            <div>
-                <div class="portal-footer-title">MyCampus Malaysia</div>
-                <div class="portal-footer-copy">Semester registration, add / drop, class timetable and statement tools for students.</div>
-            </div>
-            <div class="portal-footer-copy portal-footer-copy-end">
-                Built for Malaysian academic wording and student self-service flows.
-            </div>
-        </div>
-    </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

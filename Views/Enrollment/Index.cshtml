@@ -1,15 +1,16 @@
 @model EnrollmentIndexViewModel
 @{
-    ViewData["Title"] = "Semester Registration";
+    ViewData["Title"] = "Enrollment";
 }
 
 <section class="portal-hero portal-hero-compact mb-4" data-reveal="left">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <span class="portal-eyebrow">Semester registration</span>
+            <span class="portal-eyebrow">Enrollment</span>
             <h1 class="h2 mb-1">Plan your timetable for @Model.SemesterName</h1>
             <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
-            <p class="text-secondary mb-0">Registration window: @Model.RegistrationWindow</p>
+            <p class="text-secondary mb-1">Academic timeline: @Model.RegistrationWindow</p>
+            <p class="text-secondary mb-0">Only sections approved for your programme are shown here.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <span class="portal-chip">Programme planning</span>
@@ -24,7 +25,7 @@
     <div class="row g-3">
         <div class="col-sm-6 col-xl-3" data-reveal data-delay="40">
             <div class="portal-surface stat-card h-100">
-                <span class="stat-label">Active registrations</span>
+                <span class="stat-label">Active enrollments</span>
                 <div class="stat-value">@Model.ActiveEnrollmentCount</div>
                 <div class="stat-meta">@Model.IntakeLabel intake</div>
             </div>
@@ -54,15 +55,15 @@
 
 @if (!Model.AvailableSections.Any())
 {
-    <div class="portal-surface empty-state" data-reveal>
-        <h2 class="h4 mb-2">No additional sections are available right now</h2>
-        <p class="text-secondary mb-3">
-            @(Model.IsRegistrationOpen
-                ? "You may already be registered for the remaining courses, or the open sections have reached capacity."
-                : "There are no planning sections available to display for this semester at the moment.")
-        </p>
-        <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Review Current Timetable</a>
-    </div>
+        <div class="portal-surface empty-state" data-reveal>
+            <h2 class="h4 mb-2">No additional sections are available right now</h2>
+            <p class="text-secondary mb-3">
+                @(Model.IsRegistrationOpen
+                    ? "You may already be registered for the remaining courses, or the open sections approved for your programme have reached capacity."
+                    : "There are no programme-approved planning sections available to display for this semester at the moment.")
+            </p>
+            <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Review Current Timetable</a>
+        </div>
 }
 else
 {
@@ -96,7 +97,7 @@ else
                     <form asp-action="Enroll" method="post" class="d-flex justify-content-end">
                         <input type="hidden" name="sectionId" value="@item.SectionId" />
                         <button type="submit" class="btn btn-primary" disabled="@(!Model.IsRegistrationOpen)">
-                            @(Model.IsRegistrationOpen ? "Add To Semester Timetable" : "Registration Closed")
+                            @(Model.IsRegistrationOpen ? "Add To Semester Timetable" : "Registration Unavailable")
                         </button>
                     </form>
                 </article>

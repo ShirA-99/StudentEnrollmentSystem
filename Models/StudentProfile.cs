@@ -28,6 +28,10 @@ public class StudentProfile
     public string ProgramName { get; set; } = string.Empty;
 
     [Required]
+    [StringLength(20)]
+    public string ProgramCode { get; set; } = string.Empty;
+
+    [Required]
     [StringLength(40)]
     public string IntakeLabel { get; set; } = string.Empty;
 

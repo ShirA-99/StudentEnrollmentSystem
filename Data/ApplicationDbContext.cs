@@ -31,6 +31,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(profile => profile.StudentNumber).HasMaxLength(20);
             entity.Property(profile => profile.FullName).HasMaxLength(120);
             entity.Property(profile => profile.ProgramName).HasMaxLength(120);
+            entity.Property(profile => profile.ProgramCode).HasMaxLength(20);
             entity.Property(profile => profile.IntakeLabel).HasMaxLength(40);
 
             entity.HasOne(profile => profile.ApplicationUser)
@@ -57,6 +58,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(course => course.Code).IsUnique();
             entity.Property(course => course.Code).HasMaxLength(20);
             entity.Property(course => course.Title).HasMaxLength(120);
+            entity.Property(course => course.EligibleProgrammeCodes).HasMaxLength(80);
         });
 
         builder.Entity<CourseSection>(entity =>

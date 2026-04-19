@@ -15,7 +15,7 @@
             <div class="d-flex flex-wrap gap-2 mb-3">
                 @if (isSignedIn)
                 {
-                    <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Open Semester Registration</a>
+                    <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Open Enrollment</a>
                     <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Add / Drop</a>
                 }
                 else
@@ -31,7 +31,7 @@
             </div>
             @if (!isSignedIn)
             {
-                <p class="text-secondary small mt-3 mb-0">Sign in first to access semester registration, add / drop, registration history, and your statement.</p>
+                <p class="text-secondary small mt-3 mb-0">Sign in first to access enrollment, add / drop, registration history, and your statement.</p>
             }
         </div>
         <div class="col-xl-5">
@@ -53,7 +53,7 @@
                         <span class="quick-fact-value">@Model.OpenSectionCount available for planning</span>
                     </div>
                 </div>
-                <p class="text-secondary mb-3">Use any seeded student account below when presenting the semester registration flow locally.</p>
+                <p class="text-secondary mb-3">Use any seeded student account below when presenting the enrollment flow locally.</p>
                 <div class="vstack gap-2">
                     @foreach (var account in Model.DemoAccounts)
                     {
@@ -61,6 +61,7 @@
                             <div>
                                 <div class="fw-semibold">@account.DisplayName</div>
                                 <div class="text-secondary small">@account.Email</div>
+                                <div class="text-secondary small">@account.ProgramName | @account.SemesterName</div>
                             </div>
                             @if (isSignedIn)
                             {
@@ -102,9 +103,9 @@
     </div>
     <div class="col-sm-6 col-xl-3" data-reveal data-delay="160">
         <div class="portal-surface stat-card h-100">
-            <span class="stat-label">Current registrations</span>
+            <span class="stat-label">Current enrollments</span>
             <div class="stat-value">@Model.CurrentRegistrationCount</div>
-            <div class="stat-meta">Confirmed student registrations in the live semester</div>
+            <div class="stat-meta">Confirmed student enrollments in the live semester</div>
         </div>
     </div>
 </section>
@@ -112,7 +113,7 @@
 <section class="row g-4">
     <div class="col-lg-5" data-reveal="left">
         <div class="portal-surface h-100">
-            <span class="portal-eyebrow">Registration status</span>
+            <span class="portal-eyebrow">Enrollment status</span>
             <h2 class="h4 mb-3">Semester planning is ready</h2>
             <p class="text-secondary mb-4">@Model.RecentUpdateText</p>
             <div class="quick-facts">
@@ -121,12 +122,12 @@
                     <span class="quick-fact-value">@Model.ActiveStudentCount</span>
                 </div>
                 <div class="quick-fact">
-                    <span class="quick-fact-label">Registration window</span>
+                    <span class="quick-fact-label">Enrollment window</span>
                     <span class="quick-fact-value">@Model.EnrollmentWindow</span>
                 </div>
                 <div class="quick-fact">
                     <span class="quick-fact-label">Core services</span>
-                    <span class="quick-fact-value">Semester registration, add / drop, timetable review and statement access</span>
+                    <span class="quick-fact-value">Enrollment, add / drop, timetable review and statement access</span>
                 </div>
             </div>
         </div>
@@ -136,11 +137,11 @@
             <div class="col-md-6">
                 <div class="portal-surface h-100">
                     <span class="portal-eyebrow">Academic planning</span>
-                    <h2 class="h4 mb-3">Semester registration</h2>
-                    <p class="text-secondary mb-4">Review seat availability, section schedules, lecturers and credit hours before you submit a registration request.</p>
+                    <h2 class="h4 mb-3">Enrollment</h2>
+                    <p class="text-secondary mb-4">Review seat availability, section schedules, lecturers and credit hours before you submit an enrollment request.</p>
                     @if (isSignedIn)
                     {
-                        <a class="btn btn-outline-primary" asp-controller="Enrollment" asp-action="Index">Open Semester Registration</a>
+                        <a class="btn btn-outline-primary" asp-controller="Enrollment" asp-action="Index">Open Enrollment</a>
                     }
                     else
                     {

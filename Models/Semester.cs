@@ -18,6 +18,10 @@ public class Semester
 
     public DateOnly EnrollmentEndDate { get; set; }
 
+    public DateOnly SemesterStartDate { get; set; }
+
+    public DateOnly AddDropEndDate { get; set; }
+
     public SemesterStatus Status { get; set; }
 
     public ICollection<CourseSection> CourseSections { get; set; } = new List<CourseSection>();

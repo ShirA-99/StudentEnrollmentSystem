@@ -12,7 +12,8 @@
             <span class="portal-eyebrow">Semester add / drop</span>
             <h1 class="h2 mb-1">Manage your semester timetable</h1>
             <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
-            <p class="text-secondary mb-0">@Model.SemesterName | Registration window: @Model.RegistrationWindow</p>
+            <p class="text-secondary mb-1">@Model.SemesterName | Academic timeline: @Model.RegistrationWindow</p>
+            <p class="text-secondary mb-0">Only sections approved for your programme can be added during the add / drop period.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <span class="portal-chip portal-chip-contrast">@Model.TotalHistoryEvents changes recorded</span>
@@ -68,7 +69,7 @@
             <div class="text-secondary small mb-4">
                 @(Model.IsRegistrationOpen
                     ? "Dropping a class updates your semester timetable immediately and writes a permanent audit entry to registration history."
-                    : "Registration changes are closed right now, so your current timetable is shown in read-only mode.")
+                    : "Add / Drop is unavailable right now, so your current timetable is shown in read-only mode.")
             </div>
             <div class="vstack gap-3">
                 @if (!Model.CurrentEnrollments.Any())
@@ -135,7 +136,7 @@
                 {
                     <div class="empty-state compact">
                         <h3 class="h5 mb-2">No sections available right now</h3>
-                        <p class="text-secondary mb-0">All remaining sections are either full or already represented in your active timetable.</p>
+                        <p class="text-secondary mb-0">All remaining programme-approved sections are either full or already represented in your active timetable.</p>
                     </div>
                 }
                 else
@@ -157,7 +158,7 @@
                             <form asp-action="Add" method="post" class="d-flex justify-content-end">
                                 <input type="hidden" name="sectionId" value="@item.SectionId" />
                                 <button type="submit" class="btn btn-primary btn-sm" disabled="@(!Model.IsRegistrationOpen)">
-                                    @(Model.IsRegistrationOpen ? "Add Section" : "Read Only")
+                                    @(Model.IsRegistrationOpen ? "Add Section" : "Add / Drop Unavailable")
                                 </button>
                             </form>
                         </article>

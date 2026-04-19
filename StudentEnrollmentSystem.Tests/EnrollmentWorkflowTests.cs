@@ -74,6 +74,18 @@ public class EnrollmentWorkflowTests
     }
 
     [Fact]
+    public async Task EnrollAsync_BlocksProgrammeMismatch()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var service = new EnrollmentService(fixture.Context);
+
+        var result = await service.EnrollAsync(fixture.PrimaryStudent.ApplicationUserId, fixture.BusinessSection.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("not offered", result.Message);
+    }
+
+    [Fact]
     public async Task EnrollAsync_CreatesEnrollmentAndAuditRecord()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -97,9 +109,48 @@ public class EnrollmentWorkflowTests
     }
 
     [Fact]
+    public async Task AddCourseAsync_DuringAddDrop_CreatesEnrollmentAndAuditRecord()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.OpenAddDropWindow();
+
+        var service = new AddDropService(fixture.Context, new EnrollmentService(fixture.Context));
+
+        var result = await service.AddCourseAsync(fixture.PrimaryStudent.ApplicationUserId, fixture.WritingSection.Id);
+
+        Assert.True(result.Succeeded);
+
+        var enrollment = await fixture.Context.EnrollmentRecords.SingleAsync(record =>
+            record.StudentProfileId == fixture.PrimaryStudent.Id &&
+            record.CourseSectionId == fixture.WritingSection.Id);
+
+        var audit = await fixture.Context.AddDropAudits.SingleAsync(auditRecord =>
+            auditRecord.StudentProfileId == fixture.PrimaryStudent.Id &&
+            auditRecord.CourseSectionId == fixture.WritingSection.Id &&
+            auditRecord.ActionType == AddDropActionType.Added);
+
+        Assert.Equal(EnrollmentStatus.Enrolled, enrollment.Status);
+        Assert.Equal("Added during add / drop", audit.Remarks);
+    }
+
+    [Fact]
+    public async Task AddCourseAsync_BeforeSemesterStart_ReturnsFriendlyFailure()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var service = new AddDropService(fixture.Context, new EnrollmentService(fixture.Context));
+
+        var result = await service.AddCourseAsync(fixture.PrimaryStudent.ApplicationUserId, fixture.WritingSection.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("Add / Drop", result.Message);
+        Assert.Contains("begins on", result.Message);
+    }
+
+    [Fact]
     public async Task DropCourseAsync_UpdatesStatusAndWritesAudit()
     {
         await using var fixture = await TestFixture.CreateAsync();
+        fixture.OpenAddDropWindow();
 
         var enrollment = new EnrollmentRecord
         {
@@ -134,10 +185,10 @@ public class EnrollmentWorkflowTests
     }
 
     [Fact]
-    public async Task GetEnrollmentCatalogAsync_WhenRegistrationIsClosed_ReturnsPlanningState()
+    public async Task GetEnrollmentCatalogAsync_WhenRegistrationIsClosed_ReturnsReadOnlyState()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        fixture.CloseEnrollmentWindow();
+        fixture.CloseAllWindows();
 
         var service = new EnrollmentService(fixture.Context);
 
@@ -145,28 +196,28 @@ public class EnrollmentWorkflowTests
 
         Assert.False(result.IsRegistrationOpen);
         Assert.Equal("Current Semester", result.SemesterName);
-        Assert.Contains("currently closed", result.RegistrationStatusMessage);
+        Assert.Contains("has closed", result.RegistrationStatusMessage);
     }
 
     [Fact]
-    public async Task EnrollAsync_WhenRegistrationIsClosed_ReturnsFriendlyFailure()
+    public async Task EnrollAsync_WhenSemesterIsInAddDrop_ReturnsFriendlyFailure()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        fixture.CloseEnrollmentWindow();
+        fixture.OpenAddDropWindow();
 
         var service = new EnrollmentService(fixture.Context);
 
         var result = await service.EnrollAsync(fixture.PrimaryStudent.ApplicationUserId, fixture.WritingSection.Id);
 
         Assert.False(result.Succeeded);
-        Assert.Contains("currently closed", result.Message);
+        Assert.Contains("Use Add / Drop", result.Message);
     }
 
     [Fact]
-    public async Task DropCourseAsync_WhenRegistrationIsClosed_ReturnsFriendlyFailure()
+    public async Task DropCourseAsync_WhenWindowsAreClosed_ReturnsFriendlyFailure()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        fixture.CloseEnrollmentWindow();
+        fixture.CloseAllWindows();
 
         var enrollment = new EnrollmentRecord
         {
@@ -187,13 +238,14 @@ public class EnrollmentWorkflowTests
             "Unable to continue");
 
         Assert.False(result.Succeeded);
-        Assert.Contains("currently closed", result.Message);
+        Assert.Contains("deadline passed", result.Message);
     }
 
     [Fact]
     public async Task DropCourseAsync_RequiresNonEmptyReason()
     {
         await using var fixture = await TestFixture.CreateAsync();
+        fixture.OpenAddDropWindow();
 
         var enrollment = new EnrollmentRecord
         {
@@ -238,6 +290,8 @@ public class EnrollmentWorkflowTests
 
         public CourseSection HistorySection { get; private set; } = null!;
 
+        public CourseSection BusinessSection { get; private set; } = null!;
+
         public static async Task<TestFixture> CreateAsync()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -255,29 +309,79 @@ public class EnrollmentWorkflowTests
             await Context.DisposeAsync();
         }
 
-        public void CloseEnrollmentWindow()
+        public void OpenAddDropWindow()
         {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var semester = Context.Semesters.Single();
+            semester.Status = SemesterStatus.OpenForEnrollment;
+            semester.EnrollmentStartDate = today.AddDays(-20);
+            semester.EnrollmentEndDate = today.AddDays(-8);
+            semester.SemesterStartDate = today.AddDays(-7);
+            semester.AddDropEndDate = today.AddDays(7);
+            Context.SaveChanges();
+        }
+
+        public void CloseAllWindows()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
             var semester = Context.Semesters.Single();
             semester.Status = SemesterStatus.Closed;
-            semester.EnrollmentEndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+            semester.EnrollmentStartDate = today.AddDays(-40);
+            semester.EnrollmentEndDate = today.AddDays(-20);
+            semester.SemesterStartDate = today.AddDays(-18);
+            semester.AddDropEndDate = today.AddDays(-1);
             Context.SaveChanges();
         }
 
         private async Task SeedAsync()
         {
+            var today = DateOnly.FromDateTime(DateTime.Today);
             var semester = new Semester
             {
                 Code = "CURRENT",
                 Name = "Current Semester",
                 Status = SemesterStatus.OpenForEnrollment,
-                EnrollmentStartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-7)),
-                EnrollmentEndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7))
+                EnrollmentStartDate = today.AddDays(-7),
+                EnrollmentEndDate = today.AddDays(3),
+                SemesterStartDate = today.AddDays(10),
+                AddDropEndDate = today.AddDays(24)
             };
 
-            var programming = new Course { Code = "CSC101", Title = "Intro to Programming", CreditHours = 3 };
-            var mathematics = new Course { Code = "MAT201", Title = "Discrete Mathematics", CreditHours = 3 };
-            var writing = new Course { Code = "ENG150", Title = "Academic Writing", CreditHours = 2 };
-            var history = new Course { Code = "HIS220", Title = "Civilisation", CreditHours = 2 };
+            var programming = new Course
+            {
+                Code = "CSC101",
+                Title = "Intro to Programming",
+                CreditHours = 3,
+                EligibleProgrammeCodes = "SE,IT"
+            };
+            var mathematics = new Course
+            {
+                Code = "MAT201",
+                Title = "Discrete Mathematics",
+                CreditHours = 3,
+                EligibleProgrammeCodes = string.Empty
+            };
+            var writing = new Course
+            {
+                Code = "ENG150",
+                Title = "Academic Writing",
+                CreditHours = 2,
+                EligibleProgrammeCodes = string.Empty
+            };
+            var history = new Course
+            {
+                Code = "HIS220",
+                Title = "Civilisation",
+                CreditHours = 2,
+                EligibleProgrammeCodes = string.Empty
+            };
+            var business = new Course
+            {
+                Code = "BUS205",
+                Title = "Entrepreneurship and Innovation",
+                CreditHours = 3,
+                EligibleProgrammeCodes = "BA"
+            };
 
             ProgrammingSection = new CourseSection
             {
@@ -355,6 +459,25 @@ public class EnrollmentWorkflowTests
                 ]
             };
 
+            BusinessSection = new CourseSection
+            {
+                Course = business,
+                Semester = semester,
+                SectionCode = "05",
+                Capacity = 20,
+                InstructorName = "Lecturer E",
+                Meetings =
+                [
+                    new SectionMeeting
+                    {
+                        DayOfWeek = DayOfWeek.Thursday,
+                        StartTime = new TimeOnly(13, 0),
+                        EndTime = new TimeOnly(15, 0),
+                        Venue = "Room D201"
+                    }
+                ]
+            };
+
             var primaryUser = new ApplicationUser
             {
                 Id = "user-1",
@@ -383,6 +506,7 @@ public class EnrollmentWorkflowTests
                 FullName = "Alice Tan",
                 Email = "alice@student.demo",
                 ProgramName = "Software Engineering",
+                ProgramCode = "SE",
                 IntakeLabel = "2026",
                 CurrentSemester = semester
             };
@@ -395,11 +519,22 @@ public class EnrollmentWorkflowTests
                 FullName = "Bob Kumar",
                 Email = "bob@student.demo",
                 ProgramName = "Information Technology",
+                ProgramCode = "IT",
                 IntakeLabel = "2026",
                 CurrentSemester = semester
             };
 
-            Context.AddRange(primaryUser, secondaryUser, PrimaryStudent, SecondaryStudent, ProgrammingSection, MathematicsSection, WritingSection, HistorySection);
+            Context.AddRange(
+                primaryUser,
+                secondaryUser,
+                PrimaryStudent,
+                SecondaryStudent,
+                ProgrammingSection,
+                MathematicsSection,
+                WritingSection,
+                HistorySection,
+                BusinessSection);
+
             await Context.SaveChangesAsync();
         }
     }

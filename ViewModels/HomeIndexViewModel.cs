@@ -26,4 +26,8 @@ public class DemoLoginViewModel
     public string DisplayName { get; set; } = string.Empty;
 
     public string Email { get; set; } = string.Empty;
+
+    public string ProgramName { get; set; } = string.Empty;
+
+    public string SemesterName { get; set; } = string.Empty;
 }

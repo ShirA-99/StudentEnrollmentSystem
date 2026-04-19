@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentEnrollmentSystem.Data;
 using StudentEnrollmentSystem.Models;
+using StudentEnrollmentSystem.Services;
 using StudentEnrollmentSystem.ViewModels;
 
 namespace StudentEnrollmentSystem.Controllers;
@@ -11,18 +12,24 @@ public class HomeController(ApplicationDbContext context) : Controller
 {
     public async Task<IActionResult> Index()
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var activeSemester = await context.Semesters
             .AsNoTracking()
-            .SingleOrDefaultAsync(semester =>
+            .Where(semester =>
                 semester.Status == SemesterStatus.OpenForEnrollment &&
-                semester.EnrollmentStartDate <= DateOnly.FromDateTime(DateTime.Today) &&
-                semester.EnrollmentEndDate >= DateOnly.FromDateTime(DateTime.Today));
+                semester.EnrollmentStartDate <= today &&
+                semester.AddDropEndDate >= today)
+            .OrderBy(semester => semester.SemesterStartDate)
+            .FirstOrDefaultAsync();
 
         var openSectionCount = 0;
         var registrationCount = 0;
+        var recentUpdateText = "Semester planning tools remain available even when enrollment windows are closed.";
+        var windowSummary = "Please check with the academic office for the next enrollment and add / drop periods.";
 
         if (activeSemester is not null)
         {
+            var state = SemesterTimeline.Describe(activeSemester, today);
             var sectionAvailability = await context.CourseSections
                 .AsNoTracking()
                 .Include(section => section.EnrollmentRecords)
@@ -41,29 +48,37 @@ public class HomeController(ApplicationDbContext context) : Controller
                 .CountAsync(record =>
                     record.Status == EnrollmentStatus.Enrolled &&
                     record.CourseSection.SemesterId == activeSemester.Id);
+
+            recentUpdateText = state.Phase switch
+            {
+                SemesterLifecyclePhase.Enrollment =>
+                    $"Enrollment for {activeSemester.Name} is open. Students can confirm their timetable before classes start on {activeSemester.SemesterStartDate:dd MMM yyyy}.",
+                SemesterLifecyclePhase.AddDrop =>
+                    $"{activeSemester.Name} is already in session. Add / Drop remains available until {activeSemester.AddDropEndDate:dd MMM yyyy} for eligible programme sections.",
+                _ =>
+                    $"Semester planning for {activeSemester.Name} is available in the portal."
+            };
+
+            windowSummary = SemesterTimeline.FormatWindowSummary(activeSemester);
         }
 
         var model = new HomeIndexViewModel
         {
             PortalTitle = "MyCampus Student Self-Service",
             SemesterName = activeSemester?.Name ?? "Registration window currently unavailable",
-            EnrollmentWindow = activeSemester is null
-                ? "Please check with the academic office for the next registration period."
-                : $"{activeSemester.EnrollmentStartDate:dd MMM yyyy} - {activeSemester.EnrollmentEndDate:dd MMM yyyy}",
+            EnrollmentWindow = windowSummary,
             CatalogCourseCount = await context.Courses.AsNoTracking().CountAsync(),
             OpenSectionCount = openSectionCount,
             ActiveStudentCount = await context.StudentProfiles.AsNoTracking().CountAsync(),
             CurrentRegistrationCount = registrationCount,
-            RecentUpdateText = activeSemester is null
-                ? "Semester planning tools remain available even when the registration window is closed."
-                : $"Registration for {activeSemester.Name} is open. Review available sections, confirm your timetable, and submit changes before the closing date.",
+            RecentUpdateText = recentUpdateText,
             DemoAccounts =
             [
-                new DemoLoginViewModel { DisplayName = "Alice Tan", Email = SeedDataDefaults.DemoEmails[0] },
-                new DemoLoginViewModel { DisplayName = "Bob Kumar", Email = SeedDataDefaults.DemoEmails[1] },
-                new DemoLoginViewModel { DisplayName = "Chloe Lim", Email = SeedDataDefaults.DemoEmails[2] },
-                new DemoLoginViewModel { DisplayName = "Daniel Wong", Email = SeedDataDefaults.DemoEmails[3] },
-                new DemoLoginViewModel { DisplayName = "Farah Hassan", Email = SeedDataDefaults.DemoEmails[4] }
+                new DemoLoginViewModel { DisplayName = "Alice Tan", Email = SeedDataDefaults.DemoEmails[0], ProgramName = "Diploma in Software Engineering", SemesterName = "Semester 2 2026" },
+                new DemoLoginViewModel { DisplayName = "Bob Kumar", Email = SeedDataDefaults.DemoEmails[1], ProgramName = "Diploma in Information Technology", SemesterName = "Semester 2 2026" },
+                new DemoLoginViewModel { DisplayName = "Chloe Lim", Email = SeedDataDefaults.DemoEmails[2], ProgramName = "Diploma in Business Analytics", SemesterName = "Semester 3 2026" },
+                new DemoLoginViewModel { DisplayName = "Daniel Wong", Email = SeedDataDefaults.DemoEmails[3], ProgramName = "Diploma in Cyber Security", SemesterName = "Semester 2 2026" },
+                new DemoLoginViewModel { DisplayName = "Farah Hassan", Email = SeedDataDefaults.DemoEmails[4], ProgramName = "Diploma in Data Analytics", SemesterName = "Semester 3 2026" }
             ]
         };
 

@@ -17,5 +17,8 @@ public class Course
     [Range(1, 10)]
     public int CreditHours { get; set; }
 
+    [StringLength(80)]
+    public string EligibleProgrammeCodes { get; set; } = string.Empty;
+
     public ICollection<CourseSection> Sections { get; set; } = new List<CourseSection>();
 }
