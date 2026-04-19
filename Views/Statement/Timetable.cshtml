@@ -2,10 +2,10 @@
 @using StudentEnrollmentSystem.Models
 
 @{
-    ViewData["Title"] = "Semester Timetable";
+    ViewData["Title"] = "Class Timetable";
 
     var currentSemesterId = ViewBag.CurrentSemesterId as int? ?? 0;
-    var activeSemester = ViewBag.ActiveSemester;
+    var activeSemester = ViewBag.ActiveSemester as string ?? "Current Semester";
     var clashOnly = ViewBag.ClashOnly as bool? ?? false;
 
     var currentSemesterRecords = Model.EnrollmentRecords?
@@ -122,19 +122,7 @@
 
     string ActiveSemesterText()
     {
-        if (activeSemester == null)
-        {
-            return "Current Semester";
-        }
-
-        try
-        {
-            return activeSemester.ToString();
-        }
-        catch
-        {
-            return "Current Semester";
-        }
+        return activeSemester;
     }
 }
 
@@ -160,25 +148,25 @@
                 @if (clashOnly)
                 {
                     <a asp-controller="Statement"
-                       asp-action="Timetable"
-                       class="btn btn-outline-secondary">
-                        Show All Classes
+                    asp-action="Timetable"
+                    class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                        Show All Subjects
                     </a>
                 }
                 else
                 {
                     <a asp-controller="Statement"
-                       asp-action="Timetable"
-                       asp-route-clashOnly="true"
-                       class="btn btn-outline-danger">
-                        Show Clash Sections
+                    asp-action="Timetable"
+                    asp-route-clashOnly="true"
+                    class="btn btn-outline-danger rounded-pill px-4 py-2">
+                        Show Only Clash Subjects
                     </a>
                 }
             </div>
         </div>
 
         <div class="row g-4">
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <div class="portal-surface stat-card h-100">
                     <div class="stat-label">
                         Subjects
@@ -190,7 +178,7 @@
                 </div>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <div class="portal-surface stat-card h-100">
                     <div class="stat-label">
                         Credit Hours
@@ -202,7 +190,7 @@
                 </div>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <div class="portal-surface stat-card h-100">
                     <div class="stat-label">
                         Sessions
@@ -214,31 +202,7 @@
                 </div>
             </div>
 
-            <div class="col-md-2">
-                <div class="portal-surface stat-card h-100">
-                    <div class="stat-label">
-                        Earliest Class
-                    </div>
-                    <div class="stat-value">
-                        @(earliestMeeting != null ? FormatDisplayTime(earliestMeeting.StartTime) : "-")
-                    </div>
-                    <div class="stat-meta">First session start</div>
-                </div>
-            </div>
-
-            <div class="col-md-2">
-                <div class="portal-surface stat-card h-100">
-                    <div class="stat-label">
-                        Latest End
-                    </div>
-                    <div class="stat-value">
-                        @(latestMeeting != null ? FormatDisplayTime(latestMeeting.EndTime) : "-")
-                    </div>
-                    <div class="stat-meta">Last session ends</div>
-                </div>
-            </div>
-
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <div class="portal-surface stat-card h-100">
                     <div class="stat-label">
                         Clash Status
@@ -367,6 +331,8 @@
     </section>
 
     <section class="portal-surface" data-reveal="left">
+    <div id="timetableCaptureArea" class="rounded-4 p-3 p-md-4" style="background-color:#ffffff; border:1px solid #edf2f7;">
+
         <div class="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
                 <span class="portal-eyebrow">Timetable</span>
@@ -381,14 +347,6 @@
                     <span class="mx-2 text-secondary">|</span>
                     <span class="text-secondary">@Model.ProgramName</span>
                 </div>
-            </div>
-
-            <div>
-                <button type="button"
-                        id="downloadTimetableBtn"
-                        class="btn btn-primary shadow-sm">
-                    Download PNG
-                </button>
             </div>
         </div>
 
@@ -406,68 +364,43 @@
             </div>
         </div>
 
-        <div id="timetableCaptureArea" class="rounded-4 p-3 p-md-4" style="background-color:#ffffff; border:1px solid #edf2f7;">
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle text-center mb-0" style="table-layout: fixed;">
-                    <thead>
-                        <tr style="background-color: #f3f8fb;">
-                            <th style="min-width: 90px;">Day</th>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center mb-0" style="table-layout: fixed;">
+                <thead>
+                    <tr style="background-color: #f3f8fb;">
+                        <th style="min-width: 90px;">Day</th>
+                        @foreach (var hour in timeSlots)
+                        {
+                            <th style="min-width: 95px;">@hour.ToString("00"):00</th>
+                        }
+                        <th style="min-width: 95px;">18:00</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var day in days)
+                    {
+                        <tr>
+                            <td class="fw-bold" style="background-color: #f8fbfd; color:#163a63;">
+                                @GetDayShortName(day)
+                            </td>
+
                             @foreach (var hour in timeSlots)
                             {
-                                <th style="min-width: 95px;">@hour.ToString("00"):00</th>
-                            }
-                            <th style="min-width: 95px;">18:00</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var day in days)
-                        {
-                            <tr>
-                                <td class="fw-bold" style="background-color: #f8fbfd; color:#163a63;">
-                                    @GetDayShortName(day)
-                                </td>
+                                var slotMeetings = displayedRecords
+                                    .SelectMany(r => r.CourseSection.Meetings.Select(m => new { Record = r, Meeting = m }))
+                                    .Where(x =>
+                                        x.Meeting.DayOfWeek == day &&
+                                        x.Meeting.StartTime.Hour <= hour &&
+                                        x.Meeting.EndTime.Hour > hour)
+                                    .ToList();
 
-                                @foreach (var hour in timeSlots)
+                                if (slotMeetings.Count > 1)
                                 {
-                                    var slotMeetings = displayedRecords
-                                        .SelectMany(r => r.CourseSection.Meetings.Select(m => new { Record = r, Meeting = m }))
-                                        .Where(x =>
-                                            x.Meeting.DayOfWeek == day &&
-                                            x.Meeting.StartTime.Hour <= hour &&
-                                            x.Meeting.EndTime.Hour > hour)
-                                        .ToList();
-
-                                    if (slotMeetings.Count > 1)
-                                    {
-                                        <td style="background-color: #ffe5e5; vertical-align: top; font-size: 0.82rem;">
-                                            @foreach (var item in slotMeetings)
-                                            {
-                                                <div class="mb-2 p-2 rounded-3 text-start border border-danger" style="background-color: #ffcccc;">
-                                                    <div class="fw-bold text-danger mb-1">
-                                                        @item.Record.CourseSection.Course.Code @item.Record.CourseSection.SectionCode
-                                                    </div>
-                                                    <div class="text-dark small mb-1">
-                                                        @item.Record.CourseSection.Course.Title
-                                                    </div>
-                                                    <div class="text-secondary small">
-                                                        @item.Meeting.Venue
-                                                    </div>
-                                                    <div class="text-secondary small">
-                                                        @FormatTimeRange(item.Meeting.StartTime, item.Meeting.EndTime)
-                                                    </div>
-                                                </div>
-                                            }
-                                        </td>
-                                    }
-                                    else if (slotMeetings.Count == 1)
-                                    {
-                                        var item = slotMeetings.First();
-                                        var isClashSlot = IsRecordInClash(item.Record);
-
-                                        <td style="background-color:@(isClashSlot ? "#fff4f4" : "#eaf4ff"); vertical-align: top; font-size: 0.82rem;">
-                                            <div class="p-2 rounded-3 text-start"
-                                                 style="border:1px solid @(isClashSlot ? "#dc3545" : "#cfe2ff"); background-color:@(isClashSlot ? "#ffe5e5" : "#f4f9ff");">
-                                                <div class="fw-bold mb-1" style="color:@(isClashSlot ? "#b42318" : "#163a63");">
+                                    <td style="background-color: #ffe5e5; vertical-align: top; font-size: 0.82rem;">
+                                        @foreach (var item in slotMeetings)
+                                        {
+                                            <div class="mb-2 p-2 rounded-3 text-start border border-danger" style="background-color: #ffcccc;">
+                                                <div class="fw-bold text-danger mb-1">
                                                     @item.Record.CourseSection.Course.Code @item.Record.CourseSection.SectionCode
                                                 </div>
                                                 <div class="text-dark small mb-1">
@@ -480,67 +413,157 @@
                                                     @FormatTimeRange(item.Meeting.StartTime, item.Meeting.EndTime)
                                                 </div>
                                             </div>
-                                        </td>
-                                    }
-                                    else
-                                    {
-                                        <td style="background-color:#ffffff;"></td>
-                                    }
+                                        }
+                                    </td>
                                 }
+                                else if (slotMeetings.Count == 1)
+                                {
+                                    var item = slotMeetings.First();
+                                    var isClashSlot = IsRecordInClash(item.Record);
 
-                                <td style="background-color:#ffffff;"></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                    <td style="background-color:@(isClashSlot ? "#fff4f4" : "#eaf4ff"); vertical-align: top; font-size: 0.82rem;">
+                                        <div class="p-2 rounded-3 text-start"
+                                             style="border:1px solid @(isClashSlot ? "#dc3545" : "#cfe2ff"); background-color:@(isClashSlot ? "#ffe5e5" : "#f4f9ff");">
+                                            <div class="fw-bold mb-1" style="color:@(isClashSlot ? "#b42318" : "#163a63");">
+                                                @item.Record.CourseSection.Course.Code @item.Record.CourseSection.SectionCode
+                                            </div>
+                                            <div class="text-dark small mb-1">
+                                                @item.Record.CourseSection.Course.Title
+                                            </div>
+                                            <div class="text-secondary small">
+                                                @item.Meeting.Venue
+                                            </div>
+                                            <div class="text-secondary small">
+                                                @FormatTimeRange(item.Meeting.StartTime, item.Meeting.EndTime)
+                                            </div>
+                                        </div>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td style="background-color:#ffffff;"></td>
+                                }
+                            }
+
+                            <td style="background-color:#ffffff;"></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-    </section>
+    </div>
+
+    <div class="mt-3 d-flex justify-content-end gap-2 flex-wrap">
+        <button type="button"
+                id="downloadTimetableBtn"
+                class="btn btn-primary shadow-sm">
+            Print PNG
+        </button>
+
+        <button type="button"
+                id="downloadTimetablePdfBtn"
+                class="btn btn-outline-dark shadow-sm">
+            Print PDF
+        </button>
+    </div>
+</section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const downloadBtn = document.getElementById("downloadTimetableBtn");
+        const pngBtn = document.getElementById("downloadTimetableBtn");
+        const pdfBtn = document.getElementById("downloadTimetablePdfBtn");
+        const target = document.getElementById("timetableCaptureArea");
 
-        if (!downloadBtn) return;
+        if (pngBtn) {
+            pngBtn.addEventListener("click", async function () {
+                const originalText = pngBtn.innerText;
+                pngBtn.disabled = true;
+                pngBtn.innerText = "Generating...";
 
-        downloadBtn.addEventListener("click", async function () {
-            const button = this;
-            const target = document.getElementById("timetableCaptureArea");
+                try {
+                    const canvas = await html2canvas(target, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: "#ffffff"
+                    });
 
-            const originalText = button.innerText;
-            button.disabled = true;
-            button.innerText = "Generating...";
+                    const image = canvas.toDataURL("image/png");
 
-            try {
-                const canvas = await html2canvas(target, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: "#ffffff"
-                });
+                    const link = document.createElement("a");
+                    link.href = image;
+                    link.download = "class-timetable.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
 
-                const image = canvas.toDataURL("image/png");
+                    pngBtn.innerText = "Downloaded";
+                    setTimeout(() => {
+                        pngBtn.innerText = originalText;
+                        pngBtn.disabled = false;
+                    }, 1200);
+                } catch (error) {
+                    console.error("PNG export failed:", error);
+                    alert("Failed to export timetable as PNG.");
+                    pngBtn.innerText = originalText;
+                    pngBtn.disabled = false;
+                }
+            });
+        }
 
-                const link = document.createElement("a");
-                link.href = image;
-                link.download = "class-timetable.png";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        if (pdfBtn) {
+            pdfBtn.addEventListener("click", async function () {
+                const originalText = pdfBtn.innerText;
+                pdfBtn.disabled = true;
+                pdfBtn.innerText = "Generating...";
 
-                button.innerText = "Downloaded";
-                setTimeout(() => {
-                    button.innerText = originalText;
-                    button.disabled = false;
-                }, 1200);
-            } catch (error) {
-                console.error("PNG export failed:", error);
-                alert("Failed to export timetable as PNG.");
-                button.innerText = originalText;
-                button.disabled = false;
-            }
-        });
+                try {
+                    const canvas = await html2canvas(target, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: "#ffffff"
+                    });
+
+                    const imageData = canvas.toDataURL("image/png");
+                    const { jsPDF } = window.jspdf;
+
+                    const pdf = new jsPDF("p", "mm", "a4");
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+
+                    const imgWidth = pageWidth - 20; // 左右留白
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                    let heightLeft = imgHeight;
+                    let position = 10;
+
+                    pdf.addImage(imageData, "PNG", 10, position, imgWidth, imgHeight);
+                    heightLeft -= (pageHeight - 20);
+
+                    while (heightLeft > 0) {
+                        position = heightLeft - imgHeight + 10;
+                        pdf.addPage();
+                        pdf.addImage(imageData, "PNG", 10, position, imgWidth, imgHeight);
+                        heightLeft -= (pageHeight - 20);
+                    }
+
+                    pdf.save("class-timetable.pdf");
+
+                    pdfBtn.innerText = "Downloaded";
+                    setTimeout(() => {
+                        pdfBtn.innerText = originalText;
+                        pdfBtn.disabled = false;
+                    }, 1200);
+                } catch (error) {
+                    console.error("PDF export failed:", error);
+                    alert("Failed to export timetable as PDF.");
+                    pdfBtn.innerText = originalText;
+                    pdfBtn.disabled = false;
+                }
+            });
+        }
     });
 </script>

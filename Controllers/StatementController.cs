@@ -25,6 +25,7 @@ namespace StudentEnrollmentSystem.Controllers
             }
 
             var student = await _context.StudentProfiles
+                .Include(s => s.CurrentSemester)
                 .Include(s => s.EnrollmentRecords)
                     .ThenInclude(e => e.CourseSection)
                         .ThenInclude(cs => cs.Course)
@@ -38,17 +39,8 @@ namespace StudentEnrollmentSystem.Controllers
                 return NotFound("Student profile not found.");
             }
 
-            var currentSemesterId = student.EnrollmentRecords
-                .Where(e => e.Status == EnrollmentStatus.Enrolled)
-                .Select(e => e.CourseSection.SemesterId)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            ViewBag.CurrentSemesterId = currentSemesterId;
-            ViewBag.ActiveSemester = student.EnrollmentRecords
-                .Where(e => e.Status == EnrollmentStatus.Enrolled && e.CourseSection.SemesterId == currentSemesterId)
-                .Select(e => e.CourseSection.Semester)
-                .FirstOrDefault();
+            ViewBag.CurrentSemesterId = student.CurrentSemesterId;
+            ViewBag.ActiveSemester = student.CurrentSemester?.Name ?? "Current Semester";
 
             return View(student);
         }
@@ -63,6 +55,7 @@ namespace StudentEnrollmentSystem.Controllers
             }
 
             var student = await _context.StudentProfiles
+                .Include(s => s.CurrentSemester)
                 .Include(s => s.EnrollmentRecords)
                     .ThenInclude(e => e.CourseSection)
                         .ThenInclude(cs => cs.Meetings)
@@ -79,18 +72,8 @@ namespace StudentEnrollmentSystem.Controllers
                 return NotFound("Student profile not found.");
             }
 
-            var currentSemesterId = student.EnrollmentRecords
-                .Where(e => e.Status == EnrollmentStatus.Enrolled)
-                .Select(e => e.CourseSection.SemesterId)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            ViewBag.CurrentSemesterId = currentSemesterId;
-            ViewBag.ActiveSemester = student.EnrollmentRecords
-                .Where(e => e.Status == EnrollmentStatus.Enrolled && e.CourseSection.SemesterId == currentSemesterId)
-                .Select(e => e.CourseSection.Semester)
-                .FirstOrDefault();
-
+            ViewBag.CurrentSemesterId = student.CurrentSemesterId;
+            ViewBag.ActiveSemester = student.CurrentSemester?.Name ?? "Current Semester";
             ViewBag.ClashOnly = clashOnly;
 
             return View(student);
