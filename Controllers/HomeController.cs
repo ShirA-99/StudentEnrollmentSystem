@@ -45,7 +45,7 @@ public class HomeController(ApplicationDbContext context) : Controller
 
         var model = new HomeIndexViewModel
         {
-            PortalTitle = "Student Self-Service Portal",
+            PortalTitle = "MyCampus Student Self-Service",
             SemesterName = activeSemester?.Name ?? "Registration window currently unavailable",
             EnrollmentWindow = activeSemester is null
                 ? "Please check with the academic office for the next registration period."
@@ -55,7 +55,7 @@ public class HomeController(ApplicationDbContext context) : Controller
             ActiveStudentCount = await context.StudentProfiles.AsNoTracking().CountAsync(),
             CurrentRegistrationCount = registrationCount,
             RecentUpdateText = activeSemester is null
-                ? "Course planning tools remain available even when the registration window is closed."
+                ? "Semester planning tools remain available even when the registration window is closed."
                 : $"Registration for {activeSemester.Name} is open. Review available sections, confirm your timetable, and submit changes before the closing date.",
             DemoAccounts =
             [

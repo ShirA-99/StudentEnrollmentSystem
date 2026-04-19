@@ -2,7 +2,7 @@
 @using StudentEnrollmentSystem.Models
 
 @{
-    ViewData["Title"] = "Class Timetable";
+    ViewData["Title"] = "Semester Timetable";
 
     var currentSemesterId = ViewBag.CurrentSemesterId as int? ?? 0;
     var activeSemester = ViewBag.ActiveSemester;
@@ -138,27 +138,22 @@
     }
 }
 
-<div class="container py-3 py-md-4">
+<div class="py-3 py-md-4">
 
-    <!-- Page Header -->
-    <section class="rounded-5 shadow-sm p-4 p-md-5 mb-4" style="background-color: #f8fbfd; border: 1px solid #e6edf3;">
+    <section class="portal-hero mb-4" data-reveal="left">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
             <div>
-                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
-                    Student Portal
-                </div>
-                <h1 class="fw-bold mb-2" style="color: #163a63; font-size: 3rem;">
-                    Class Timetable
-                </h1>
-                <p class="mb-0 text-secondary fs-5">
-                    View your schedule, detect timetable clashes, and download your timetable as PNG.
+                <span class="portal-eyebrow">Semester timetable</span>
+                <h1 class="h2 mb-2">Class timetable</h1>
+                <p class="portal-lead mb-0">
+                    Review your class schedule, detect timetable clashes, and export your semester timetable as a PNG image.
                 </p>
             </div>
 
             <div class="d-flex gap-2 flex-wrap">
                 <a asp-controller="Statement"
                    asp-action="Index"
-                   class="btn btn-outline-primary rounded-pill px-4 py-2">
+                   class="btn btn-outline-primary">
                     Back To Statement
                 </a>
 
@@ -166,8 +161,8 @@
                 {
                     <a asp-controller="Statement"
                        asp-action="Timetable"
-                       class="btn btn-outline-secondary rounded-pill px-4 py-2">
-                        Show All Subjects
+                       class="btn btn-outline-secondary">
+                        Show All Classes
                     </a>
                 }
                 else
@@ -175,8 +170,8 @@
                     <a asp-controller="Statement"
                        asp-action="Timetable"
                        asp-route-clashOnly="true"
-                       class="btn btn-outline-danger rounded-pill px-4 py-2">
-                        Show Only Clash Subjects
+                       class="btn btn-outline-danger">
+                        Show Clash Sections
                     </a>
                 }
             </div>
@@ -184,98 +179,95 @@
 
         <div class="row g-4">
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Subjects
                     </div>
-                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                    <div class="stat-value">
                         @totalSubjects
                     </div>
-                    <div class="text-secondary mt-2 small">Currently displayed</div>
+                    <div class="stat-meta">Currently displayed</div>
                 </div>
             </div>
 
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Credit Hours
                     </div>
-                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                    <div class="stat-value">
                         @totalCreditHours
                     </div>
-                    <div class="text-secondary mt-2 small">Registered credits</div>
+                    <div class="stat-meta">Registered semester credits</div>
                 </div>
             </div>
 
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Sessions
                     </div>
-                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                    <div class="stat-value">
                         @weeklySessions
                     </div>
-                    <div class="text-secondary mt-2 small">Meetings per week</div>
+                    <div class="stat-meta">Meetings per week</div>
                 </div>
             </div>
 
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Earliest Class
                     </div>
-                    <div class="fw-bold" style="font-size: 1.75rem; color: #163a63;">
+                    <div class="stat-value">
                         @(earliestMeeting != null ? FormatDisplayTime(earliestMeeting.StartTime) : "-")
                     </div>
-                    <div class="text-secondary mt-2 small">First session start</div>
+                    <div class="stat-meta">First session start</div>
                 </div>
             </div>
 
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Latest End
                     </div>
-                    <div class="fw-bold" style="font-size: 1.75rem; color: #163a63;">
+                    <div class="stat-value">
                         @(latestMeeting != null ? FormatDisplayTime(latestMeeting.EndTime) : "-")
                     </div>
-                    <div class="text-secondary mt-2 small">Last session ends</div>
+                    <div class="stat-meta">Last session ends</div>
                 </div>
             </div>
 
             <div class="col-md-2">
-                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
-                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                <div class="portal-surface stat-card h-100">
+                    <div class="stat-label">
                         Clash Status
                     </div>
 
                     @if (hasClash)
                     {
-                        <div class="fw-bold fs-5 px-3 py-2 rounded-3 text-white d-inline-block" style="background-color: #dc3545;">
+                        <div class="portal-chip portal-chip-danger">
                             Clash Detected
                         </div>
-                        <div class="text-secondary mt-2 small">Overlapping classes found</div>
+                        <div class="stat-meta">Overlapping classes found</div>
                     }
                     else
                     {
-                        <div class="fw-bold fs-5 px-3 py-2 rounded-3 text-white d-inline-block" style="background-color: #198754;">
+                        <div class="portal-chip">
                             No Clash
                         </div>
-                        <div class="text-secondary mt-2 small">No timetable conflict</div>
+                        <div class="stat-meta">No timetable conflict</div>
                     }
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Subjects Overview -->
-    <section class="rounded-5 shadow-sm p-4 p-md-5 mb-4" style="background-color: #ffffff; border: 1px solid #e6edf3;">
+    <section class="portal-surface mb-4" data-reveal="right">
         <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
-                    Subject Overview
-                </div>
-                <h2 class="fw-bold mb-0" style="color: #163a63;">Registered Subjects</h2>
+                <span class="portal-eyebrow">Semester overview</span>
+                <h2 class="h4 mb-0">Registered subjects</h2>
             </div>
 
             <div class="fw-semibold text-secondary">
@@ -308,8 +300,8 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead style="background-color: #f3f8fb;">
+            <table class="table portal-table align-middle mb-0">
+                <thead>
                     <tr>
                         <th class="py-3 px-3 text-uppercase fw-semibold border-0">Course</th>
                         <th class="py-3 px-3 text-uppercase fw-semibold border-0">Course Name</th>
@@ -374,21 +366,18 @@
         </div>
     </section>
 
-    <!-- Timetable -->
-    <section class="rounded-5 shadow-sm p-4 p-md-5" style="background-color: #ffffff; border: 1px solid #e6edf3;">
+    <section class="portal-surface" data-reveal="left">
         <div class="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
-                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
-                    Timetable
-                </div>
-                <h2 class="fw-bold mb-1" style="color: #163a63;">
-                    Class Timetable
+                <span class="portal-eyebrow">Timetable</span>
+                <h2 class="h4 mb-1">
+                    Semester class timetable
                 </h2>
 
                 <div class="fw-semibold d-flex flex-wrap align-items-center" style="font-size: 1rem;">
-                    <span style="color:#163a63;">@Model.FullName</span>
+                    <span>@Model.FullName</span>
                     <span class="mx-2 text-secondary">|</span>
-                    <span class="text-dark">@Model.StudentNumber</span>
+                    <span>@Model.StudentNumber</span>
                     <span class="mx-2 text-secondary">|</span>
                     <span class="text-secondary">@Model.ProgramName</span>
                 </div>
@@ -397,19 +386,18 @@
             <div>
                 <button type="button"
                         id="downloadTimetableBtn"
-                        class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                        class="btn btn-primary shadow-sm">
                     Download PNG
                 </button>
             </div>
         </div>
 
-        <!-- Legend -->
         <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
             <div class="fw-semibold text-secondary">Legend:</div>
 
             <div class="d-flex align-items-center gap-2">
                 <span style="width:16px; height:16px; background-color:#eaf4ff; border:1px solid #b8d8ff; display:inline-block; border-radius:4px;"></span>
-                <span class="text-secondary">Normal Class</span>
+                <span class="text-secondary">Scheduled class</span>
             </div>
 
             <div class="d-flex align-items-center gap-2">

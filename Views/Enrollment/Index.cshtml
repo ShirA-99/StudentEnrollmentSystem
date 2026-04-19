@@ -1,42 +1,49 @@
 @model EnrollmentIndexViewModel
 @{
-    ViewData["Title"] = "Course Enrollment";
+    ViewData["Title"] = "Semester Registration";
 }
 
-<section class="portal-hero portal-hero-compact mb-4">
+<section class="portal-hero portal-hero-compact mb-4" data-reveal="left">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <span class="portal-eyebrow">Course enrollment</span>
-            <h1 class="h2 mb-1">Build your timetable for @Model.SemesterName</h1>
+            <span class="portal-eyebrow">Semester registration</span>
+            <h1 class="h2 mb-1">Plan your timetable for @Model.SemesterName</h1>
             <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
             <p class="text-secondary mb-0">Registration window: @Model.RegistrationWindow</p>
         </div>
-        <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add or Drop</a>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="portal-chip">Programme planning</span>
+            <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add / Drop</a>
+        </div>
+    </div>
+
+    <div class="alert @(Model.IsRegistrationOpen ? "alert-success" : "alert-warning") portal-status-banner mb-4" role="status">
+        @Model.RegistrationStatusMessage
     </div>
 
     <div class="row g-3">
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="40">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Active registrations</span>
                 <div class="stat-value">@Model.ActiveEnrollmentCount</div>
                 <div class="stat-meta">@Model.IntakeLabel intake</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="80">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Credit hours</span>
                 <div class="stat-value">@Model.CurrentCreditHours</div>
-                <div class="stat-meta">Current study load in the live semester</div>
+                <div class="stat-meta">Current study load for the active semester</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="120">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Available sections</span>
                 <div class="stat-value">@Model.AvailableSectionCount</div>
-                <div class="stat-meta">Open sections that you can still select</div>
+                <div class="stat-meta">Open sections you can still select for this semester</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="160">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Recent activity</span>
                 <div class="stat-meta stat-meta-strong">@Model.RecentActivityText</div>
@@ -47,19 +54,24 @@
 
 @if (!Model.AvailableSections.Any())
 {
-    <div class="portal-surface empty-state">
-        <h2 class="h4 mb-2">No additional sections are currently available</h2>
-        <p class="text-secondary mb-3">You may already be registered for the available courses, or the remaining sections have reached capacity.</p>
+    <div class="portal-surface empty-state" data-reveal>
+        <h2 class="h4 mb-2">No additional sections are available right now</h2>
+        <p class="text-secondary mb-3">
+            @(Model.IsRegistrationOpen
+                ? "You may already be registered for the remaining courses, or the open sections have reached capacity."
+                : "There are no planning sections available to display for this semester at the moment.")
+        </p>
         <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Review Current Timetable</a>
     </div>
 }
 else
 {
     <section class="row g-4">
-        @foreach (var item in Model.AvailableSections)
+        @for (var index = 0; index < Model.AvailableSections.Count; index++)
         {
-            <div class="col-xl-6">
-                <article class="portal-surface section-card h-100">
+            var item = Model.AvailableSections[index];
+            <div class="col-xl-6" data-reveal="right" data-delay="@(index * 45)">
+                <article class="section-card portal-surface h-100">
                     <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
                         <div>
                             <div class="section-course-code">@item.CourseCode</div>
@@ -77,13 +89,15 @@ else
                             <span class="section-detail-value">@item.ScheduleSummary</span>
                         </div>
                         <div class="section-detail">
-                            <span class="section-detail-label">Instructor</span>
+                            <span class="section-detail-label">Lecturer</span>
                             <span class="section-detail-value">@item.InstructorName</span>
                         </div>
                     </div>
                     <form asp-action="Enroll" method="post" class="d-flex justify-content-end">
                         <input type="hidden" name="sectionId" value="@item.SectionId" />
-                        <button type="submit" class="btn btn-primary">Add To Timetable</button>
+                        <button type="submit" class="btn btn-primary" disabled="@(!Model.IsRegistrationOpen)">
+                            @(Model.IsRegistrationOpen ? "Add To Semester Timetable" : "Registration Closed")
+                        </button>
                     </form>
                 </article>
             </div>

@@ -36,8 +36,11 @@ public class AddDropController(AddDropService addDropService) : Controller
     {
         if (!ModelState.IsValid)
         {
-            TempData["ErrorMessage"] = "A drop reason is required before removing a course.";
-            return RedirectToAction(nameof(Index));
+            var model = await addDropService.GetDashboardAsync(GetUserId());
+            ViewData["InvalidDropEnrollmentId"] = input.EnrollmentId;
+            ViewData["InvalidDropRemarks"] = input.Remarks;
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return View(nameof(Index), model);
         }
 
         var result = await addDropService.DropCourseAsync(GetUserId(), input.EnrollmentId, input.Remarks);

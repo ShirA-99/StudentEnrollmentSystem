@@ -11,23 +11,28 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
     {
         var student = await context.StudentProfiles
             .AsNoTracking()
+            .Include(profile => profile.CurrentSemester)
             .SingleOrDefaultAsync(profile => profile.ApplicationUserId == userId)
             ?? throw new InvalidOperationException("No student profile was found for the signed-in account.");
 
-        var activeSemester = await GetActiveSemesterAsync();
+        var activeSemester = await FindActiveSemesterAsync();
+        var referenceSemester = await GetReferenceSemesterAsync(student, activeSemester);
         var catalog = await enrollmentService.GetEnrollmentCatalogAsync(userId);
+        var currentSemesterId = referenceSemester?.Id;
 
-        var currentEnrollments = await context.EnrollmentRecords
-            .AsNoTracking()
-            .Include(record => record.CourseSection)
-                .ThenInclude(section => section.Course)
-            .Include(record => record.CourseSection)
-                .ThenInclude(section => section.Meetings)
-            .Where(record => record.StudentProfileId == student.Id &&
-                             record.Status == EnrollmentStatus.Enrolled &&
-                             record.CourseSection.SemesterId == activeSemester.Id)
-            .OrderBy(record => record.CourseSection.Course.Code)
-            .ToListAsync();
+        var currentEnrollments = currentSemesterId is int semesterId
+            ? await context.EnrollmentRecords
+                .AsNoTracking()
+                .Include(record => record.CourseSection)
+                    .ThenInclude(section => section.Course)
+                .Include(record => record.CourseSection)
+                    .ThenInclude(section => section.Meetings)
+                .Where(record => record.StudentProfileId == student.Id &&
+                                 record.Status == EnrollmentStatus.Enrolled &&
+                                 record.CourseSection.SemesterId == semesterId)
+                .OrderBy(record => record.CourseSection.Course.Code)
+                .ToListAsync()
+            : [];
 
         var historyEvents = await context.AddDropAudits
             .AsNoTracking()
@@ -37,7 +42,9 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             .OrderByDescending(audit => audit.ActionAtUtc)
             .ToListAsync();
 
-        var latestHistoryEvent = historyEvents.FirstOrDefault();
+        var latestHistoryEvent = currentSemesterId is int selectedSemesterId
+            ? historyEvents.FirstOrDefault(audit => audit.CourseSection.SemesterId == selectedSemesterId)
+            : historyEvents.FirstOrDefault();
 
         return new AddDropIndexViewModel
         {
@@ -51,8 +58,10 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             AvailableSectionCount = catalog.AvailableSections.Count,
             TotalHistoryEvents = historyEvents.Count,
             RecentActivityText = latestHistoryEvent is null
-                ? "No registration adjustments have been recorded yet."
+                ? $"No registration adjustments have been recorded for {catalog.SemesterName} yet."
                 : $"{latestHistoryEvent.ActionType} {latestHistoryEvent.CourseSection.Course.Code} section {latestHistoryEvent.CourseSection.SectionCode} on {latestHistoryEvent.ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
+            IsRegistrationOpen = catalog.IsRegistrationOpen,
+            RegistrationStatusMessage = catalog.RegistrationStatusMessage,
             AvailableSections = catalog.AvailableSections,
             CurrentEnrollments = currentEnrollments.Select(record => new CurrentEnrollmentViewModel
             {
@@ -73,11 +82,22 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
 
     public async Task<OperationResult> DropCourseAsync(string userId, int enrollmentId, string remarks)
     {
+        if (string.IsNullOrWhiteSpace(remarks))
+        {
+            return OperationResult.Failure("A drop reason is required before removing a course.");
+        }
+
         var student = await context.StudentProfiles
             .SingleOrDefaultAsync(profile => profile.ApplicationUserId == userId)
             ?? throw new InvalidOperationException("No student profile was found for the signed-in account.");
 
-        var activeSemester = await GetActiveSemesterAsync();
+        var activeSemester = await FindActiveSemesterAsync();
+
+        if (activeSemester is null)
+        {
+            return OperationResult.Failure(
+                "Add/drop is currently closed. You can still review your timetable, but changes cannot be submitted right now.");
+        }
 
         var enrollment = await context.EnrollmentRecords
             .Include(record => record.CourseSection)
@@ -94,10 +114,11 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         }
 
         var timestamp = DateTime.UtcNow;
+        var normalizedRemarks = remarks.Trim();
 
         enrollment.Status = EnrollmentStatus.Dropped;
         enrollment.DroppedAtUtc = timestamp;
-        enrollment.DropReason = remarks;
+        enrollment.DropReason = normalizedRemarks;
 
         await context.AddDropAudits.AddAsync(new AddDropAudit
         {
@@ -105,7 +126,7 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
             CourseSectionId = enrollment.CourseSectionId,
             ActionType = AddDropActionType.Dropped,
             ActionAtUtc = timestamp,
-            Remarks = remarks
+            Remarks = normalizedRemarks
         });
 
         await context.SaveChangesAsync();
@@ -155,17 +176,47 @@ public class AddDropService(ApplicationDbContext context, EnrollmentService enro
         };
     }
 
-    private async Task<Semester> GetActiveSemesterAsync()
+    private Task<Semester?> FindActiveSemesterAsync()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        var semester = await context.Semesters
+        return context.Semesters
             .AsNoTracking()
             .SingleOrDefaultAsync(item =>
                 item.Status == SemesterStatus.OpenForEnrollment &&
                 item.EnrollmentStartDate <= today &&
                 item.EnrollmentEndDate >= today);
+    }
 
-        return semester ?? throw new InvalidOperationException("There is no semester currently open for add/drop.");
+    private async Task<Semester?> GetReferenceSemesterAsync(StudentProfile student, Semester? activeSemester)
+    {
+        if (activeSemester is not null)
+        {
+            return activeSemester;
+        }
+
+        if (student.CurrentSemester is not null)
+        {
+            return student.CurrentSemester;
+        }
+
+        var latestEnrollmentSemesterId = await context.EnrollmentRecords
+            .AsNoTracking()
+            .Where(record => record.StudentProfileId == student.Id)
+            .OrderByDescending(record => record.CourseSection.Semester.EnrollmentEndDate)
+            .Select(record => (int?)record.CourseSection.SemesterId)
+            .FirstOrDefaultAsync();
+
+        if (latestEnrollmentSemesterId.HasValue)
+        {
+            return await context.Semesters
+                .AsNoTracking()
+                .SingleOrDefaultAsync(semester => semester.Id == latestEnrollmentSemesterId.Value);
+        }
+
+        return await context.Semesters
+            .AsNoTracking()
+            .OrderByDescending(semester => semester.EnrollmentEndDate)
+            .FirstOrDefaultAsync();
     }
 }

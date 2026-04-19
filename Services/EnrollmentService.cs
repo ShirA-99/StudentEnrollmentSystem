@@ -10,7 +10,24 @@ public class EnrollmentService(ApplicationDbContext context)
     public async Task<EnrollmentIndexViewModel> GetEnrollmentCatalogAsync(string userId)
     {
         var student = await GetStudentAsync(userId);
-        var semester = await GetActiveSemesterAsync();
+        var activeSemester = await FindActiveSemesterAsync();
+        var semester = await GetReferenceSemesterAsync(student, activeSemester);
+
+        if (semester is null)
+        {
+            return new EnrollmentIndexViewModel
+            {
+                StudentName = student.FullName,
+                StudentNumber = student.StudentNumber,
+                ProgramName = student.ProgramName,
+                IntakeLabel = student.IntakeLabel,
+                SemesterName = "Semester information unavailable",
+                RegistrationWindow = "Please check with the academic office for the next registration period.",
+                RecentActivityText = "No recent registration activity has been recorded yet.",
+                RegistrationStatusMessage = "We could not find a semester to display right now.",
+                IsRegistrationOpen = false
+            };
+        }
 
         var activeEnrollments = await context.EnrollmentRecords
             .AsNoTracking()
@@ -42,7 +59,8 @@ public class EnrollmentService(ApplicationDbContext context)
             .AsNoTracking()
             .Include(audit => audit.CourseSection)
                 .ThenInclude(section => section.Course)
-            .Where(audit => audit.StudentProfileId == student.Id)
+            .Where(audit => audit.StudentProfileId == student.Id &&
+                            audit.CourseSection.SemesterId == semester.Id)
             .OrderByDescending(audit => audit.ActionAtUtc)
             .FirstOrDefaultAsync();
 
@@ -67,6 +85,8 @@ public class EnrollmentService(ApplicationDbContext context)
             })
             .ToList();
 
+        var isRegistrationOpen = activeSemester?.Id == semester.Id;
+
         return new EnrollmentIndexViewModel
         {
             StudentName = student.FullName,
@@ -80,8 +100,12 @@ public class EnrollmentService(ApplicationDbContext context)
             CurrentCreditHours = activeEnrollments.Sum(record => record.CourseSection.Course.CreditHours),
             AvailableSectionCount = availableSectionCards.Count,
             RecentActivityText = latestAudit is null
-                ? "No recent registration activity has been recorded yet."
+                ? $"No registration changes have been recorded for {semester.Name} yet."
                 : $"{latestAudit.ActionType} {latestAudit.CourseSection.Course.Code} section {latestAudit.CourseSection.SectionCode} on {latestAudit.ActionAtUtc.ToLocalTime():dd MMM yyyy}.",
+            IsRegistrationOpen = isRegistrationOpen,
+            RegistrationStatusMessage = isRegistrationOpen
+                ? $"Registration for {semester.Name} is open. You can review sections and submit changes until {semester.EnrollmentEndDate:dd MMM yyyy}."
+                : $"Registration changes for {semester.Name} are currently closed. You can still review sections and plan your timetable.",
             AvailableSections = availableSectionCards
         };
     }
@@ -89,7 +113,13 @@ public class EnrollmentService(ApplicationDbContext context)
     public async Task<OperationResult> EnrollAsync(string userId, int sectionId)
     {
         var student = await GetStudentAsync(userId);
-        var semester = await GetActiveSemesterAsync();
+        var semester = await FindActiveSemesterAsync();
+
+        if (semester is null)
+        {
+            return OperationResult.Failure(
+                "Enrollment is currently closed. You can still review sections, but new registrations cannot be submitted right now.");
+        }
 
         var section = await context.CourseSections
             .Include(target => target.Course)
@@ -160,23 +190,54 @@ public class EnrollmentService(ApplicationDbContext context)
     {
         var student = await context.StudentProfiles
             .AsNoTracking()
+            .Include(profile => profile.CurrentSemester)
             .SingleOrDefaultAsync(profile => profile.ApplicationUserId == userId);
 
         return student ?? throw new InvalidOperationException("No student profile was found for the signed-in account.");
     }
 
-    private async Task<Semester> GetActiveSemesterAsync()
+    private Task<Semester?> FindActiveSemesterAsync()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        var semester = await context.Semesters
+        return context.Semesters
             .AsNoTracking()
             .SingleOrDefaultAsync(item =>
                 item.Status == SemesterStatus.OpenForEnrollment &&
                 item.EnrollmentStartDate <= today &&
                 item.EnrollmentEndDate >= today);
+    }
 
-        return semester ?? throw new InvalidOperationException("There is no semester currently open for enrollment.");
+    private async Task<Semester?> GetReferenceSemesterAsync(StudentProfile student, Semester? activeSemester)
+    {
+        if (activeSemester is not null)
+        {
+            return activeSemester;
+        }
+
+        if (student.CurrentSemester is not null)
+        {
+            return student.CurrentSemester;
+        }
+
+        var latestEnrollmentSemesterId = await context.EnrollmentRecords
+            .AsNoTracking()
+            .Where(record => record.StudentProfileId == student.Id)
+            .OrderByDescending(record => record.CourseSection.Semester.EnrollmentEndDate)
+            .Select(record => (int?)record.CourseSection.SemesterId)
+            .FirstOrDefaultAsync();
+
+        if (latestEnrollmentSemesterId.HasValue)
+        {
+            return await context.Semesters
+                .AsNoTracking()
+                .SingleOrDefaultAsync(semester => semester.Id == latestEnrollmentSemesterId.Value);
+        }
+
+        return await context.Semesters
+            .AsNoTracking()
+            .OrderByDescending(semester => semester.EnrollmentEndDate)
+            .FirstOrDefaultAsync();
     }
 
     internal static bool HasScheduleConflict(IEnumerable<SectionMeeting> firstSchedule, IEnumerable<SectionMeeting> secondSchedule)

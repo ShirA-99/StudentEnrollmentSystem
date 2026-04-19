@@ -22,5 +22,9 @@ public class EnrollmentIndexViewModel
 
     public string RecentActivityText { get; set; } = string.Empty;
 
+    public bool IsRegistrationOpen { get; set; }
+
+    public string RegistrationStatusMessage { get; set; } = string.Empty;
+
     public IReadOnlyList<AvailableSectionViewModel> AvailableSections { get; set; } = [];
 }

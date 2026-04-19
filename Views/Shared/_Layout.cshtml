@@ -1,46 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-MY">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Student Portal</title>
+    <title>@ViewData["Title"] - MyCampus Malaysia</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StudentEnrollmentSystem.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="portal-shell">
+    @{
+        var isSignedIn = User.Identity?.IsAuthenticated == true;
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+        string NavClass(string controller, string? action = null)
+        {
+            var isActive = string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
+                (action is null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase));
+
+            return isActive ? "nav-link active" : "nav-link";
+        }
+    }
+    <div class="portal-topbar">
+        <div class="container-xl">
+            <span>Malaysia Student Self-Service Portal</span>
+            <span class="portal-topbar-separator">|</span>
+            <span>Semester registration, add / drop, timetable and statement access</span>
+        </div>
+    </div>
     <header>
         <nav class="navbar navbar-expand-lg portal-nav">
             <div class="container-xl">
-                <a class="navbar-brand portal-brand" asp-controller="Home" asp-action="Index">Student Portal</a>
+                <a class="navbar-brand portal-brand" asp-controller="Home" asp-action="Index">
+                    <span class="portal-brand-mark">MY</span>
+                    <span class="portal-brand-copy">
+                        <span class="portal-brand-title">MyCampus</span>
+                        <span class="portal-brand-meta">Malaysia Student Portal</span>
+                    </span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="mainNav">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 portal-nav-links">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Dashboard</a>
+                            <a class="@NavClass("Home", "Index")" asp-controller="Home" asp-action="Index">Portal Overview</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Enrollment" asp-action="Index">Course Enrollment</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="AddDrop" asp-action="Index">Add or Drop</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="AddDrop" asp-action="History">Registration History</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Statement" asp-action="Index">Statement</a>
-                        </li>
+                        @if (isSignedIn)
+                        {
+                            <li class="nav-item">
+                                <a class="@NavClass("Enrollment", "Index")" asp-controller="Enrollment" asp-action="Index">Semester Registration</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("AddDrop", "Index")" asp-controller="AddDrop" asp-action="Index">Add / Drop</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("AddDrop", "History")" asp-controller="AddDrop" asp-action="History">Registration History</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("Statement", "Index")" asp-controller="Statement" asp-action="Index">Statement</a>
+                            </li>
+                        }
                     </ul>
                     <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container-xl py-4 py-lg-5">
+    <div class="container-xl portal-main-shell py-4 py-lg-5">
         @if (TempData["SuccessMessage"] is string successMessage)
         {
             <div class="alert alert-success alert-dismissible fade show portal-alert" role="alert">
@@ -63,10 +92,14 @@
     </div>
 
     <footer class="footer portal-footer">
-        <div class="container-xl py-3">
-            <span>Student Portal</span>
-            <span class="mx-2">|</span>
-            <span>Registration and timetable self-service</span>
+        <div class="container-xl portal-footer-grid py-4">
+            <div>
+                <div class="portal-footer-title">MyCampus Malaysia</div>
+                <div class="portal-footer-copy">Semester registration, add / drop, class timetable and statement tools for students.</div>
+            </div>
+            <div class="portal-footer-copy portal-footer-copy-end">
+                Built for Malaysian academic wording and student self-service flows.
+            </div>
         </div>
     </footer>
 

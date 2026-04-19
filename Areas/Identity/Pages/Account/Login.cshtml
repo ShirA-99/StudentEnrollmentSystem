@@ -1,0 +1,126 @@
+@page
+@model StudentEnrollmentSystem.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Student Sign In";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div class="auth-shell">
+    <section class="portal-hero mb-4" data-reveal="left">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+                <span class="portal-eyebrow">Student access</span>
+                <h1 class="display-6 fw-semibold mb-3">Sign in for semester self-service</h1>
+                <p class="portal-lead mb-4">
+                    Access semester registration, add / drop, registration history, timetable review and your student statement through one Malaysian student portal.
+                </p>
+                <div class="quick-facts">
+                    <div class="quick-fact">
+                        <span class="quick-fact-label">Portal access</span>
+                        <span class="quick-fact-value">Use your student email and password to continue.</span>
+                    </div>
+                    <div class="quick-fact">
+                        <span class="quick-fact-label">Demo password</span>
+                        <span class="quick-fact-value">@SeedDataDefaults.DemoPassword</span>
+                    </div>
+                    <div class="quick-fact">
+                        <span class="quick-fact-label">Quick start</span>
+                        <span class="quick-fact-value">Choose any demo student below to prefill the sign-in form.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6" data-reveal="right" data-delay="100">
+                <div class="portal-surface auth-form-panel">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <span class="portal-eyebrow">Sign in</span>
+                            <h2 class="h4 mb-1">Student portal access</h2>
+                        </div>
+                        <span class="portal-chip">Secure session</span>
+                    </div>
+
+                    <form method="post" class="vstack gap-3">
+                        <input type="hidden" asp-for="ReturnUrl" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger portal-status-banner mb-0" role="alert"></div>
+
+                        <div>
+                            <label asp-for="Input.Email" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.Email" class="form-control" autocomplete="username" placeholder="student@example.edu" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Input.Password" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" placeholder="Enter your password" />
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check">
+                            <input asp-for="Input.RememberMe" class="form-check-input" />
+                            <label asp-for="Input.RememberMe" class="form-check-label"></label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg">Sign In To Portal</button>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ReturnUrl) && !string.Equals(Model.ReturnUrl, Url.Content("~/"), StringComparison.OrdinalIgnoreCase))
+                        {
+                            <p class="text-secondary small mb-0">After sign-in, you will return to the page you were trying to open.</p>
+                        }
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="portal-surface portal-demo-panel" data-reveal="right">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <span class="portal-eyebrow">Demo accounts</span>
+                <h2 class="h4 mb-1">Prefill a student sign-in</h2>
+            </div>
+            <span class="portal-chip">Password: @SeedDataDefaults.DemoPassword</span>
+        </div>
+        <p class="text-secondary mb-4">These seeded student accounts are prepared for local semester registration demos and UI walkthroughs.</p>
+        <div class="auth-helper-list">
+            @for (var index = 0; index < Model.DemoAccounts.Count; index++)
+            {
+                var account = Model.DemoAccounts[index];
+                <div class="auth-helper-row" data-reveal data-delay="@(index * 35)">
+                    <div>
+                        <div class="fw-semibold">@account.DisplayName</div>
+                        <div class="text-secondary small">@account.Email</div>
+                    </div>
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm js-demo-login"
+                            data-email="@account.Email"
+                            data-password="@SeedDataDefaults.DemoPassword">
+                        Use This Account
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const emailInput = document.getElementById("Input_Email");
+            const passwordInput = document.getElementById("Input_Password");
+
+            document.querySelectorAll(".js-demo-login").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (emailInput) {
+                        emailInput.value = button.dataset.email || "";
+                    }
+
+                    if (passwordInput) {
+                        passwordInput.value = button.dataset.password || "";
+                        passwordInput.focus();
+                    }
+                });
+            });
+        });
+    </script>
+}

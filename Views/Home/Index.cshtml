@@ -1,31 +1,59 @@
 @model HomeIndexViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Portal Overview";
+    var isSignedIn = User.Identity?.IsAuthenticated == true;
 }
 
-<section class="portal-hero mb-4">
+<section class="portal-hero mb-4" data-reveal="left">
     <div class="row g-4 align-items-center">
         <div class="col-xl-7">
-            <span class="portal-eyebrow">Registration services</span>
+            <span class="portal-eyebrow">Semester self-service</span>
             <h1 class="display-5 fw-semibold mb-3">@Model.PortalTitle</h1>
             <p class="portal-lead mb-4">
-                Plan your semester, register for available classes, review timetable changes, and track add/drop activity from one place.
+                Plan your semester, review open sections, manage add / drop changes, and keep your timetable in order through one Malaysian student portal.
             </p>
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Browse Available Sections</a>
-                <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Current Timetable</a>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                @if (isSignedIn)
+                {
+                    <a class="btn btn-primary btn-lg" asp-controller="Enrollment" asp-action="Index">Open Semester Registration</a>
+                    <a class="btn btn-outline-primary btn-lg" asp-controller="AddDrop" asp-action="Index">Manage Add / Drop</a>
+                }
+                else
+                {
+                    <a class="btn btn-primary btn-lg" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Url.Action("Index", "Enrollment")">Student Sign In</a>
+                    <a class="btn btn-outline-primary btn-lg" href="#demo-accounts">View Demo Accounts</a>
+                }
             </div>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="portal-chip">Semester-ready access</span>
+                <span class="portal-chip portal-chip-contrast">Malaysia campus wording</span>
+                <span class="portal-chip">Timetable-first journey</span>
+            </div>
+            @if (!isSignedIn)
+            {
+                <p class="text-secondary small mt-3 mb-0">Sign in first to access semester registration, add / drop, registration history, and your statement.</p>
+            }
         </div>
         <div class="col-xl-5">
-            <div class="portal-surface portal-demo-panel h-100">
+            <div id="demo-accounts" class="portal-surface portal-demo-panel h-100 floating-accent" data-reveal="right" data-delay="120">
                 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                     <div>
-                        <span class="portal-eyebrow">Demo access</span>
-                        <h2 class="h4 mb-1">Sample student accounts</h2>
+                        <span class="portal-eyebrow">Campus snapshot</span>
+                        <h2 class="h4 mb-1">Demo student access</h2>
                     </div>
                     <span class="portal-chip">Password: Pass123$</span>
                 </div>
-                <p class="text-secondary mb-3">Use any of the seeded student accounts below when presenting the enrollment flow locally.</p>
+                <div class="quick-facts mb-3">
+                    <div class="quick-fact">
+                        <span class="quick-fact-label">Active semester</span>
+                        <span class="quick-fact-value">@Model.SemesterName</span>
+                    </div>
+                    <div class="quick-fact">
+                        <span class="quick-fact-label">Open sections</span>
+                        <span class="quick-fact-value">@Model.OpenSectionCount available for planning</span>
+                    </div>
+                </div>
+                <p class="text-secondary mb-3">Use any seeded student account below when presenting the semester registration flow locally.</p>
                 <div class="vstack gap-2">
                     @foreach (var account in Model.DemoAccounts)
                     {
@@ -34,7 +62,14 @@
                                 <div class="fw-semibold">@account.DisplayName</div>
                                 <div class="text-secondary small">@account.Email</div>
                             </div>
-                            <span class="portal-chip">Student</span>
+                            @if (isSignedIn)
+                            {
+                                <span class="portal-chip">Student</span>
+                            }
+                            else
+                            {
+                                <a class="btn btn-outline-primary btn-sm" asp-area="Identity" asp-page="/Account/Login" asp-route-demoEmail="@account.Email" asp-route-returnUrl="@Url.Action("Index", "Enrollment")">Use This Account</a>
+                            }
                         </div>
                     }
                 </div>
@@ -44,41 +79,41 @@
 </section>
 
 <section class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-3" data-reveal data-delay="40">
         <div class="portal-surface stat-card h-100">
-            <span class="stat-label">Active term</span>
+            <span class="stat-label">Active semester</span>
             <div class="stat-value">@Model.SemesterName</div>
             <div class="stat-meta">@Model.EnrollmentWindow</div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-3" data-reveal data-delay="80">
         <div class="portal-surface stat-card h-100">
-            <span class="stat-label">Catalog courses</span>
+            <span class="stat-label">Catalogue courses</span>
             <div class="stat-value">@Model.CatalogCourseCount</div>
             <div class="stat-meta">Academic and elective offerings available in the portal</div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-3" data-reveal data-delay="120">
         <div class="portal-surface stat-card h-100">
             <span class="stat-label">Open sections</span>
             <div class="stat-value">@Model.OpenSectionCount</div>
-            <div class="stat-meta">Sections with seats still available in the current window</div>
+            <div class="stat-meta">Sections with seats still available in the current semester window</div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-3" data-reveal data-delay="160">
         <div class="portal-surface stat-card h-100">
             <span class="stat-label">Current registrations</span>
             <div class="stat-value">@Model.CurrentRegistrationCount</div>
-            <div class="stat-meta">Confirmed active enrollments in the live semester</div>
+            <div class="stat-meta">Confirmed student registrations in the live semester</div>
         </div>
     </div>
 </section>
 
 <section class="row g-4">
-    <div class="col-lg-5">
+    <div class="col-lg-5" data-reveal="left">
         <div class="portal-surface h-100">
             <span class="portal-eyebrow">Registration status</span>
-            <h2 class="h4 mb-3">Self-service enrollment is ready</h2>
+            <h2 class="h4 mb-3">Semester planning is ready</h2>
             <p class="text-secondary mb-4">@Model.RecentUpdateText</p>
             <div class="quick-facts">
                 <div class="quick-fact">
@@ -86,38 +121,52 @@
                     <span class="quick-fact-value">@Model.ActiveStudentCount</span>
                 </div>
                 <div class="quick-fact">
-                    <span class="quick-fact-label">Enrollment window</span>
+                    <span class="quick-fact-label">Registration window</span>
                     <span class="quick-fact-value">@Model.EnrollmentWindow</span>
                 </div>
                 <div class="quick-fact">
-                    <span class="quick-fact-label">Main services</span>
-                    <span class="quick-fact-value">Course enrollment, timetable updates, registration history</span>
+                    <span class="quick-fact-label">Core services</span>
+                    <span class="quick-fact-value">Semester registration, add / drop, timetable review and statement access</span>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-7">
+    <div class="col-lg-7" data-reveal="right" data-delay="80">
         <div class="row g-4">
             <div class="col-md-6">
                 <div class="portal-surface h-100">
-                    <span class="portal-eyebrow">Academic services</span>
-                    <h2 class="h4 mb-3">Course planning</h2>
-                    <p class="text-secondary mb-4">Review seat availability, section schedules, instructors, and credit hours before you submit an enrollment request.</p>
-                    <a class="btn btn-outline-primary" asp-controller="Enrollment" asp-action="Index">Open Course Enrollment</a>
+                    <span class="portal-eyebrow">Academic planning</span>
+                    <h2 class="h4 mb-3">Semester registration</h2>
+                    <p class="text-secondary mb-4">Review seat availability, section schedules, lecturers and credit hours before you submit a registration request.</p>
+                    @if (isSignedIn)
+                    {
+                        <a class="btn btn-outline-primary" asp-controller="Enrollment" asp-action="Index">Open Semester Registration</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline-primary" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Url.Action("Index", "Enrollment")">Sign In To Register</a>
+                    }
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="portal-surface h-100">
-                    <span class="portal-eyebrow">Quick access</span>
-                    <h2 class="h4 mb-3">Timetable management</h2>
-                    <p class="text-secondary mb-4">Add sections to your timetable, remove existing registrations, and review your add/drop history before the semester closes.</p>
-                    <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add or Drop</a>
+                    <span class="portal-eyebrow">Timetable changes</span>
+                    <h2 class="h4 mb-3">Add / Drop management</h2>
+                    <p class="text-secondary mb-4">Add sections to your semester timetable, drop existing registrations, and keep a record of every change.</p>
+                    @if (isSignedIn)
+                    {
+                        <a class="btn btn-outline-primary" asp-controller="AddDrop" asp-action="Index">Open Add / Drop</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline-primary" asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Url.Action("Index", "AddDrop")">Sign In To Manage Timetable</a>
+                    }
                 </div>
             </div>
             <div class="col-12">
                 <div class="portal-surface">
                     <span class="portal-eyebrow">Student guidance</span>
-                    <h2 class="h4 mb-3">Before you submit changes</h2>
+                    <h2 class="h4 mb-3">Before you confirm your semester choices</h2>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <div class="info-tile">
@@ -133,8 +182,8 @@
                         </div>
                         <div class="col-md-4">
                             <div class="info-tile">
-                                <div class="fw-semibold mb-2">Keep a record</div>
-                                <div class="text-secondary small">Every add or drop action is written to registration history for later review.</div>
+                                <div class="fw-semibold mb-2">Track every change</div>
+                                <div class="text-secondary small">Every add / drop action is written to registration history for later reference.</div>
                             </div>
                         </div>
                     </div>

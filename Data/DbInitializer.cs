@@ -50,7 +50,18 @@ public static class DbInitializer
 
         foreach (var seed in semesterSeeds)
         {
-            if (existingSemesters.TryGetValue(seed.Code, out var existingSemester))
+            if (!existingSemesters.TryGetValue(seed.Code, out var existingSemester))
+            {
+                var legacyCode = GetLegacyTrimesterCode(seed.Code);
+                if (legacyCode is not null && existingSemesters.TryGetValue(legacyCode, out existingSemester))
+                {
+                    existingSemesters.Remove(legacyCode);
+                    existingSemester.Code = seed.Code;
+                    existingSemesters[seed.Code] = existingSemester;
+                }
+            }
+
+            if (existingSemester is not null)
             {
                 existingSemester.Name = seed.Name;
                 existingSemester.Status = seed.Status;
@@ -156,7 +167,7 @@ public static class DbInitializer
 
     private static async Task EnsureStudentProfilesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
-        var activeSemester = await context.Semesters.SingleAsync(semester => semester.Code == "2026-T2");
+        var activeSemester = await context.Semesters.SingleAsync(semester => semester.Code == SemesterCode(2026, 2));
         var users = await userManager.Users.ToDictionaryAsync(user => user.Email!);
         var existingProfiles = await context.StudentProfiles.ToDictionaryAsync(profile => profile.Email);
 
@@ -349,6 +360,19 @@ public static class DbInitializer
     private static string BuildSectionKey(string semesterCode, string courseCode, string sectionCode)
         => $"{semesterCode}:{courseCode}:{sectionCode}";
 
+    private static string SemesterCode(int year, int semesterNumber)
+        => $"{year}-S{semesterNumber}";
+
+    private static string? GetLegacyTrimesterCode(string semesterCode)
+    {
+        if (!semesterCode.Contains("-S", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return semesterCode.Replace("-S", "-T", StringComparison.Ordinal);
+    }
+
     private static List<CourseSeed> CreateCourseCatalog()
     {
         return
@@ -385,93 +409,100 @@ public static class DbInitializer
     {
         return
         [
-            new SemesterSeed("2024-T3", "Trimester 3 2024", SemesterStatus.Closed, new DateOnly(2024, 9, 1), new DateOnly(2024, 10, 15)),
-            new SemesterSeed("2025-T1", "Trimester 1 2025", SemesterStatus.Closed, new DateOnly(2025, 1, 2), new DateOnly(2025, 2, 15)),
-            new SemesterSeed("2025-T2", "Trimester 2 2025", SemesterStatus.Closed, new DateOnly(2025, 4, 1), new DateOnly(2025, 5, 15)),
-            new SemesterSeed("2025-T3", "Trimester 3 2025", SemesterStatus.Closed, new DateOnly(2025, 9, 1), new DateOnly(2025, 10, 15)),
-            new SemesterSeed("2026-T1", "Trimester 1 2026", SemesterStatus.Closed, new DateOnly(2026, 1, 2), new DateOnly(2026, 2, 15)),
-            new SemesterSeed("2026-T2", "Trimester 2 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 4, 1), new DateOnly(2026, 5, 31))
+            new SemesterSeed(SemesterCode(2024, 3), "Semester 3 2024", SemesterStatus.Closed, new DateOnly(2024, 9, 1), new DateOnly(2024, 10, 15)),
+            new SemesterSeed(SemesterCode(2025, 1), "Semester 1 2025", SemesterStatus.Closed, new DateOnly(2025, 1, 2), new DateOnly(2025, 2, 15)),
+            new SemesterSeed(SemesterCode(2025, 2), "Semester 2 2025", SemesterStatus.Closed, new DateOnly(2025, 4, 1), new DateOnly(2025, 5, 15)),
+            new SemesterSeed(SemesterCode(2025, 3), "Semester 3 2025", SemesterStatus.Closed, new DateOnly(2025, 9, 1), new DateOnly(2025, 10, 15)),
+            new SemesterSeed(SemesterCode(2026, 1), "Semester 1 2026", SemesterStatus.Closed, new DateOnly(2026, 1, 2), new DateOnly(2026, 2, 15)),
+            new SemesterSeed(SemesterCode(2026, 2), "Semester 2 2026", SemesterStatus.OpenForEnrollment, new DateOnly(2026, 4, 1), new DateOnly(2026, 5, 31))
         ];
     }
 
     private static List<SectionSeed> CreateSectionSeeds()
     {
+        var s2024s3 = SemesterCode(2024, 3);
+        var s2025s1 = SemesterCode(2025, 1);
+        var s2025s2 = SemesterCode(2025, 2);
+        var s2025s3 = SemesterCode(2025, 3);
+        var s2026s1 = SemesterCode(2026, 1);
+        var s2026s2 = SemesterCode(2026, 2);
+
         return
         [
-            new SectionSeed("2024-T3", "ENG150", "01", 40, "Ms. Farina Halim", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B104")]),
-            new SectionSeed("2024-T3", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room C201")]),
-            new SectionSeed("2024-T3", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 3")]),
-            new SectionSeed("2024-T3", "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
-            new SectionSeed("2024-T3", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
-            new SectionSeed("2024-T3", "COM110", "01", 42, "Ms. Anis Safia", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B106")]),
-            new SectionSeed("2024-T3", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C105")]),
+            new SectionSeed(s2024s3, "ENG150", "01", 40, "Ms. Farina Halim", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B104")]),
+            new SectionSeed(s2024s3, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room C201")]),
+            new SectionSeed(s2024s3, "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 3")]),
+            new SectionSeed(s2024s3, "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
+            new SectionSeed(s2024s3, "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
+            new SectionSeed(s2024s3, "COM110", "01", 42, "Ms. Anis Safia", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B106")]),
+            new SectionSeed(s2024s3, "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C105")]),
 
-            new SectionSeed("2025-T1", "CSC101", "01", 28, "Dr. Nur Izzati", [Meeting(DayOfWeek.Monday, 8, 30, 10, 30, "Lab 2")]),
-            new SectionSeed("2025-T1", "CSC240", "01", 32, "Mr. Adrian Lee", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C302")]),
-            new SectionSeed("2025-T1", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room A110")]),
-            new SectionSeed("2025-T1", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room B210")]),
-            new SectionSeed("2025-T1", "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 9, 0, 11, 0, "Room A101")]),
-            new SectionSeed("2025-T1", "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B201")]),
-            new SectionSeed("2025-T1", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Room D205")]),
-            new SectionSeed("2025-T1", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Room B106")]),
+            new SectionSeed(s2025s1, "CSC101", "01", 28, "Dr. Nur Izzati", [Meeting(DayOfWeek.Monday, 8, 30, 10, 30, "Lab 2")]),
+            new SectionSeed(s2025s1, "CSC240", "01", 32, "Mr. Adrian Lee", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C302")]),
+            new SectionSeed(s2025s1, "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room A110")]),
+            new SectionSeed(s2025s1, "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room B210")]),
+            new SectionSeed(s2025s1, "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 9, 0, 11, 0, "Room A101")]),
+            new SectionSeed(s2025s1, "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room B201")]),
+            new SectionSeed(s2025s1, "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Room D205")]),
+            new SectionSeed(s2025s1, "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Room B106")]),
 
-            new SectionSeed("2025-T2", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B210")]),
-            new SectionSeed("2025-T2", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C201")]),
-            new SectionSeed("2025-T2", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D102")]),
-            new SectionSeed("2025-T2", "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
-            new SectionSeed("2025-T2", "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room B104")]),
-            new SectionSeed("2025-T2", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Studio 1")]),
-            new SectionSeed("2025-T2", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room D210")]),
-            new SectionSeed("2025-T2", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 8")]),
+            new SectionSeed(s2025s2, "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B210")]),
+            new SectionSeed(s2025s2, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C201")]),
+            new SectionSeed(s2025s2, "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D102")]),
+            new SectionSeed(s2025s2, "MAT210", "01", 30, "Dr. Kelvin Lo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room A204")]),
+            new SectionSeed(s2025s2, "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room B104")]),
+            new SectionSeed(s2025s2, "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Studio 1")]),
+            new SectionSeed(s2025s2, "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room D210")]),
+            new SectionSeed(s2025s2, "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 8")]),
 
-            new SectionSeed("2025-T3", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Lab 3")]),
-            new SectionSeed("2025-T3", "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 4")]),
-            new SectionSeed("2025-T3", "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
-            new SectionSeed("2025-T3", "MOB230", "01", 22, "Ms. Joanne Goh", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 6")]),
-            new SectionSeed("2025-T3", "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room A101")]),
-            new SectionSeed("2025-T3", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
-            new SectionSeed("2025-T3", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C201")]),
-            new SectionSeed("2025-T3", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C105")]),
-            new SectionSeed("2025-T3", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B106")]),
+            new SectionSeed(s2025s3, "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Monday, 14, 0, 16, 0, "Lab 3")]),
+            new SectionSeed(s2025s3, "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 4")]),
+            new SectionSeed(s2025s3, "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
+            new SectionSeed(s2025s3, "MOB230", "01", 22, "Ms. Joanne Goh", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 6")]),
+            new SectionSeed(s2025s3, "HIS220", "01", 42, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room A101")]),
+            new SectionSeed(s2025s3, "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Friday, 11, 0, 13, 0, "Room D102")]),
+            new SectionSeed(s2025s3, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Room C201")]),
+            new SectionSeed(s2025s3, "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room C105")]),
+            new SectionSeed(s2025s3, "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Room B106")]),
 
-            new SectionSeed("2026-T1", "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Lab 7")]),
-            new SectionSeed("2026-T1", "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Room B201")]),
-            new SectionSeed("2026-T1", "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room D301")]),
-            new SectionSeed("2026-T1", "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Wednesday, 9, 0, 11, 0, "Room B104")]),
-            new SectionSeed("2026-T1", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room A110")]),
-            new SectionSeed("2026-T1", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Studio 1")]),
-            new SectionSeed("2026-T1", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room C201")]),
-            new SectionSeed("2026-T1", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 8")]),
-            new SectionSeed("2026-T1", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room D205")]),
-            new SectionSeed("2026-T1", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room D210")]),
-            new SectionSeed("2026-T1", "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 5")]),
-            new SectionSeed("2026-T1", "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 13, 0, 15, 0, "Lab 9")]),
+            new SectionSeed(s2026s1, "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Lab 7")]),
+            new SectionSeed(s2026s1, "MAT201", "01", 30, "Dr. Priya Menon", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Room B201")]),
+            new SectionSeed(s2026s1, "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Tuesday, 10, 0, 12, 0, "Room D301")]),
+            new SectionSeed(s2026s1, "ENG150", "01", 38, "Ms. Farina Halim", [Meeting(DayOfWeek.Wednesday, 9, 0, 11, 0, "Room B104")]),
+            new SectionSeed(s2026s1, "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Thursday, 14, 0, 16, 0, "Room A110")]),
+            new SectionSeed(s2026s1, "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Studio 1")]),
+            new SectionSeed(s2026s1, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room C201")]),
+            new SectionSeed(s2026s1, "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 8")]),
+            new SectionSeed(s2026s1, "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Tuesday, 13, 0, 15, 0, "Room D205")]),
+            new SectionSeed(s2026s1, "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Thursday, 9, 0, 11, 0, "Room D210")]),
+            new SectionSeed(s2026s1, "CYB220", "01", 28, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 5")]),
+            new SectionSeed(s2026s1, "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 13, 0, 15, 0, "Lab 9")]),
 
-            new SectionSeed("2026-T2", "CSC101", "01", 25, "Dr. Nur Izzati",
+            new SectionSeed(s2026s2, "CSC101", "01", 25, "Dr. Nur Izzati",
                 [Meeting(DayOfWeek.Monday, 9, 0, 11, 0, "Lab 2"), Meeting(DayOfWeek.Thursday, 9, 0, 10, 0, "Lab 2")]),
-            new SectionSeed("2026-T2", "MAT201", "01", 20, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B201")]),
-            new SectionSeed("2026-T2", "ENG150", "02", 18, "Mr. Haris Ismail", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C103")]),
-            new SectionSeed("2026-T2", "HIS220", "01", 1, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room A101")]),
-            new SectionSeed("2026-T2", "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 7")]),
-            new SectionSeed("2026-T2", "CSC240", "01", 28, "Mr. Adrian Lee", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room C302")]),
-            new SectionSeed("2026-T2", "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Thursday, 13, 0, 15, 0, "Room C201")]),
-            new SectionSeed("2026-T2", "CYB220", "01", 24, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
-            new SectionSeed("2026-T2", "MOB230", "01", 20, "Ms. Joanne Goh", [Meeting(DayOfWeek.Tuesday, 16, 0, 18, 0, "Lab 6")]),
-            new SectionSeed("2026-T2", "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room A110")]),
-            new SectionSeed("2026-T2", "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Studio 1")]),
-            new SectionSeed("2026-T2", "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Thursday, 10, 0, 12, 0, "Room D301")]),
-            new SectionSeed("2026-T2", "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 4")]),
-            new SectionSeed("2026-T2", "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Tuesday, 11, 0, 13, 0, "Lab 3")]),
-            new SectionSeed("2026-T2", "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room B210")]),
-            new SectionSeed("2026-T2", "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 12, 0, 14, 0, "Room D102")]),
-            new SectionSeed("2026-T2", "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Monday, 16, 0, 18, 0, "Lab 8")]),
-            new SectionSeed("2026-T2", "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 9")]),
-            new SectionSeed("2026-T2", "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D205")]),
-            new SectionSeed("2026-T2", "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Monday, 15, 0, 17, 0, "Room D210")]),
-            new SectionSeed("2026-T2", "CSC245", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 12, 0, 14, 0, "Lab 9")]),
-            new SectionSeed("2026-T2", "CSC310", "01", 24, "Dr. Marcus Lim", [Meeting(DayOfWeek.Thursday, 18, 0, 20, 0, "Lab 4")]),
-            new SectionSeed("2026-T2", "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Tuesday, 8, 30, 10, 30, "Room B106")]),
-            new SectionSeed("2026-T2", "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 16, 0, 18, 0, "Room C105")])
+            new SectionSeed(s2026s2, "MAT201", "01", 20, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Monday, 10, 0, 12, 0, "Room B201")]),
+            new SectionSeed(s2026s2, "ENG150", "02", 18, "Mr. Haris Ismail", [Meeting(DayOfWeek.Tuesday, 14, 0, 16, 0, "Room C103")]),
+            new SectionSeed(s2026s2, "HIS220", "01", 1, "Dr. Leong Wei Han", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room A101")]),
+            new SectionSeed(s2026s2, "CSC230", "01", 30, "Dr. Faris Abdullah", [Meeting(DayOfWeek.Tuesday, 9, 0, 11, 0, "Lab 7")]),
+            new SectionSeed(s2026s2, "CSC240", "01", 28, "Mr. Adrian Lee", [Meeting(DayOfWeek.Friday, 10, 0, 12, 0, "Room C302")]),
+            new SectionSeed(s2026s2, "BUS205", "01", 35, "Mr. Daniel Cho", [Meeting(DayOfWeek.Thursday, 13, 0, 15, 0, "Room C201")]),
+            new SectionSeed(s2026s2, "CYB220", "01", 24, "Mr. Azlan Rahman", [Meeting(DayOfWeek.Wednesday, 14, 0, 16, 0, "Lab 5")]),
+            new SectionSeed(s2026s2, "MOB230", "01", 20, "Ms. Joanne Goh", [Meeting(DayOfWeek.Tuesday, 16, 0, 18, 0, "Lab 6")]),
+            new SectionSeed(s2026s2, "STA210", "01", 36, "Ms. Tan Mei Ling", [Meeting(DayOfWeek.Friday, 14, 0, 16, 0, "Room A110")]),
+            new SectionSeed(s2026s2, "UXD210", "01", 26, "Ms. Alicia Tan", [Meeting(DayOfWeek.Monday, 13, 0, 15, 0, "Studio 1")]),
+            new SectionSeed(s2026s2, "AIS260", "01", 26, "Mr. Edwin Ng", [Meeting(DayOfWeek.Thursday, 10, 0, 12, 0, "Room D301")]),
+            new SectionSeed(s2026s2, "CSC201", "01", 26, "Dr. Marcus Lim", [Meeting(DayOfWeek.Wednesday, 10, 0, 12, 0, "Lab 4")]),
+            new SectionSeed(s2026s2, "CSC102", "01", 24, "Ms. Melissa Wong", [Meeting(DayOfWeek.Tuesday, 11, 0, 13, 0, "Lab 3")]),
+            new SectionSeed(s2026s2, "ACC110", "01", 40, "Mr. Hafiz Jamal", [Meeting(DayOfWeek.Friday, 8, 30, 10, 30, "Room B210")]),
+            new SectionSeed(s2026s2, "ECO120", "01", 45, "Ms. Sabrina Ooi", [Meeting(DayOfWeek.Wednesday, 12, 0, 14, 0, "Room D102")]),
+            new SectionSeed(s2026s2, "DAT250", "01", 28, "Dr. Ravi Nair", [Meeting(DayOfWeek.Monday, 16, 0, 18, 0, "Lab 8")]),
+            new SectionSeed(s2026s2, "CLD270", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Thursday, 16, 0, 18, 0, "Lab 9")]),
+            new SectionSeed(s2026s2, "FIN215", "01", 34, "Ms. Irene Goh", [Meeting(DayOfWeek.Wednesday, 8, 30, 10, 30, "Room D205")]),
+            new SectionSeed(s2026s2, "MKT225", "01", 36, "Ms. Nadia Khoo", [Meeting(DayOfWeek.Monday, 15, 0, 17, 0, "Room D210")]),
+            new SectionSeed(s2026s2, "CSC245", "01", 24, "Mr. Aaron Chua", [Meeting(DayOfWeek.Friday, 12, 0, 14, 0, "Lab 9")]),
+            new SectionSeed(s2026s2, "CSC310", "01", 24, "Dr. Marcus Lim", [Meeting(DayOfWeek.Thursday, 18, 0, 20, 0, "Lab 4")]),
+            new SectionSeed(s2026s2, "COM110", "01", 40, "Ms. Anis Safia", [Meeting(DayOfWeek.Tuesday, 8, 30, 10, 30, "Room B106")]),
+            new SectionSeed(s2026s2, "LAW160", "01", 38, "Mr. Simon Yap", [Meeting(DayOfWeek.Wednesday, 16, 0, 18, 0, "Room C105")])
         ];
     }
 
@@ -489,70 +520,77 @@ public static class DbInitializer
 
     private static List<EnrollmentSeed> CreateEnrollmentSeeds()
     {
+        var s2024s3 = SemesterCode(2024, 3);
+        var s2025s1 = SemesterCode(2025, 1);
+        var s2025s2 = SemesterCode(2025, 2);
+        var s2025s3 = SemesterCode(2025, 3);
+        var s2026s1 = SemesterCode(2026, 1);
+        var s2026s2 = SemesterCode(2026, 2);
+
         return
         [
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "CSC101", "01"), new DateTime(2026, 4, 2, 9, 10, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "ENG150", "02"), new DateTime(2026, 4, 2, 9, 20, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "BUS205", "01"), new DateTime(2026, 4, 3, 8, 55, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T2", "DAT250", "01"), new DateTime(2026, 4, 3, 9, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "CSC101", "01"), new DateTime(2026, 4, 2, 9, 10, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "ENG150", "02"), new DateTime(2026, 4, 2, 9, 20, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "BUS205", "01"), new DateTime(2026, 4, 3, 8, 55, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s2, "DAT250", "01"), new DateTime(2026, 4, 3, 9, 25, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "HIS220", "01"), new DateTime(2026, 4, 2, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "CYB220", "01"), new DateTime(2026, 4, 3, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T2", "CLD270", "01"), new DateTime(2026, 4, 4, 10, 10, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "HIS220", "01"), new DateTime(2026, 4, 2, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "CYB220", "01"), new DateTime(2026, 4, 3, 10, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s2, "CLD270", "01"), new DateTime(2026, 4, 4, 10, 10, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "MOB230", "01"), new DateTime(2026, 4, 4, 8, 30, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "STA210", "01"), new DateTime(2026, 4, 4, 8, 45, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T2", "MKT225", "01"), new DateTime(2026, 4, 4, 9, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "MOB230", "01"), new DateTime(2026, 4, 4, 8, 30, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "STA210", "01"), new DateTime(2026, 4, 4, 8, 45, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s2, "MKT225", "01"), new DateTime(2026, 4, 4, 9, 5, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "CSC230", "01"), new DateTime(2026, 4, 2, 11, 5, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "CSC245", "01"), new DateTime(2026, 4, 3, 11, 15, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T2", "LAW160", "01"), new DateTime(2026, 4, 3, 11, 25, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC230", "01"), new DateTime(2026, 4, 2, 11, 5, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "CSC245", "01"), new DateTime(2026, 4, 3, 11, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s2, "LAW160", "01"), new DateTime(2026, 4, 3, 11, 25, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "AIS260", "01"), new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "ACC110", "01"), new DateTime(2026, 4, 3, 9, 15, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "FIN215", "01"), new DateTime(2026, 4, 3, 9, 30, 0, DateTimeKind.Utc), "Online enrollment"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T2", "COM110", "01"), new DateTime(2026, 4, 3, 9, 40, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "AIS260", "01"), new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "ACC110", "01"), new DateTime(2026, 4, 3, 9, 15, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "FIN215", "01"), new DateTime(2026, 4, 3, 9, 30, 0, DateTimeKind.Utc), "Online enrollment"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s2, "COM110", "01"), new DateTime(2026, 4, 3, 9, 40, 0, DateTimeKind.Utc), "Online enrollment"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "CSC230", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "MAT201", "01"), new DateTime(2026, 1, 8, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "AIS260", "01"), new DateTime(2026, 1, 9, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 18, 9, 0, 0, DateTimeKind.Utc), "Adjusted study load after timetable review"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2026-T1", "ENG150", "01"), new DateTime(2026, 1, 9, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "CSC230", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "MAT201", "01"), new DateTime(2026, 1, 8, 9, 10, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "AIS260", "01"), new DateTime(2026, 1, 9, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration", new DateTime(2026, 1, 18, 9, 0, 0, DateTimeKind.Utc), "Adjusted study load after timetable review"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2026s1, "ENG150", "01"), new DateTime(2026, 1, 9, 10, 15, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "BUS205", "01"), new DateTime(2026, 1, 8, 8, 35, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "DAT250", "01"), new DateTime(2026, 1, 8, 8, 50, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2026-T1", "FIN215", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 20, 8, 30, 0, DateTimeKind.Utc), "Replaced with a lower credit elective"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s1, "BUS205", "01"), new DateTime(2026, 1, 8, 8, 35, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s1, "DAT250", "01"), new DateTime(2026, 1, 8, 8, 50, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2026s1, "FIN215", "01"), new DateTime(2026, 1, 8, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration", new DateTime(2026, 1, 20, 8, 30, 0, DateTimeKind.Utc), "Replaced with a lower credit elective"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "DAT250", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "FIN215", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2026-T1", "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s1, "DAT250", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s1, "FIN215", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2026s1, "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T1", "CYB220", "01"), new DateTime(2026, 1, 11, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2026-T1", "CLD270", "01"), new DateTime(2026, 1, 11, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s1, "CYB220", "01"), new DateTime(2026, 1, 11, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2026s1, "CLD270", "01"), new DateTime(2026, 1, 11, 10, 15, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "STA210", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "UXD210", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2026-T1", "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2026, 1, 24, 11, 0, 0, DateTimeKind.Utc), "Changed focus to project-based electives"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s1, "STA210", "01"), new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s1, "UXD210", "01"), new DateTime(2026, 1, 10, 9, 10, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2026s1, "MKT225", "01"), new DateTime(2026, 1, 10, 9, 20, 0, DateTimeKind.Utc), "Registered during semester registration", new DateTime(2026, 1, 24, 11, 0, 0, DateTimeKind.Utc), "Changed focus to project-based electives"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CSC102", "01"), new DateTime(2025, 9, 5, 8, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CSC201", "01"), new DateTime(2025, 9, 5, 8, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey("2025-T3", "CYB220", "01"), new DateTime(2025, 9, 6, 8, 30, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2025, 9, 20, 7, 45, 0, DateTimeKind.Utc), "Moved to a different elective pathway"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2025s3, "CSC102", "01"), new DateTime(2025, 9, 5, 8, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2025s3, "CSC201", "01"), new DateTime(2025, 9, 5, 8, 20, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[0], BuildSectionKey(s2025s3, "CYB220", "01"), new DateTime(2025, 9, 6, 8, 30, 0, DateTimeKind.Utc), "Registered during semester registration", new DateTime(2025, 9, 20, 7, 45, 0, DateTimeKind.Utc), "Moved to a different elective pathway"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "HIS220", "01"), new DateTime(2025, 9, 6, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "ECO120", "01"), new DateTime(2025, 9, 6, 9, 10, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey("2025-T3", "BUS205", "01"), new DateTime(2025, 9, 6, 9, 20, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2025s3, "HIS220", "01"), new DateTime(2025, 9, 6, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2025s3, "ECO120", "01"), new DateTime(2025, 9, 6, 9, 10, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[1], BuildSectionKey(s2025s3, "BUS205", "01"), new DateTime(2025, 9, 6, 9, 20, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "MAT210", "01"), new DateTime(2025, 4, 5, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "ENG150", "01"), new DateTime(2025, 4, 5, 10, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2025-T2", "MKT225", "01"), new DateTime(2025, 4, 5, 10, 30, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey("2024-T3", "BUS205", "01"), new DateTime(2024, 9, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2025s2, "MAT210", "01"), new DateTime(2025, 4, 5, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2025s2, "ENG150", "01"), new DateTime(2025, 4, 5, 10, 15, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2025s2, "MKT225", "01"), new DateTime(2025, 4, 5, 10, 30, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[2], BuildSectionKey(s2024s3, "BUS205", "01"), new DateTime(2024, 9, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T1", "CSC101", "01"), new DateTime(2025, 1, 6, 11, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T1", "ACC110", "01"), new DateTime(2025, 1, 6, 11, 15, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey("2025-T3", "LAW160", "01"), new DateTime(2025, 9, 7, 11, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2025s1, "CSC101", "01"), new DateTime(2025, 1, 6, 11, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2025s1, "ACC110", "01"), new DateTime(2025, 1, 6, 11, 15, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[3], BuildSectionKey(s2025s3, "LAW160", "01"), new DateTime(2025, 9, 7, 11, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
 
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T2", "ECO120", "01"), new DateTime(2025, 4, 6, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week", new DateTime(2025, 4, 18, 10, 0, 0, DateTimeKind.Utc), "Changed elective selection after program review"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T1", "FIN215", "01"), new DateTime(2025, 1, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during enrollment week"),
-            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey("2025-T3", "COM110", "01"), new DateTime(2025, 9, 9, 9, 0, 0, DateTimeKind.Utc), "Registered during enrollment week")
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2025s2, "ECO120", "01"), new DateTime(2025, 4, 6, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration", new DateTime(2025, 4, 18, 10, 0, 0, DateTimeKind.Utc), "Changed elective selection after programme review"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2025s1, "FIN215", "01"), new DateTime(2025, 1, 8, 10, 0, 0, DateTimeKind.Utc), "Registered during semester registration"),
+            new EnrollmentSeed(SeedDataDefaults.DemoEmails[4], BuildSectionKey(s2025s3, "COM110", "01"), new DateTime(2025, 9, 9, 9, 0, 0, DateTimeKind.Utc), "Registered during semester registration")
         ];
     }
 

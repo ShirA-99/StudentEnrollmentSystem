@@ -22,6 +22,10 @@ public class AddDropIndexViewModel
 
     public string RecentActivityText { get; set; } = string.Empty;
 
+    public bool IsRegistrationOpen { get; set; }
+
+    public string RegistrationStatusMessage { get; set; } = string.Empty;
+
     public IReadOnlyList<CurrentEnrollmentViewModel> CurrentEnrollments { get; set; } = [];
 
     public IReadOnlyList<AvailableSectionViewModel> AvailableSections { get; set; } = [];

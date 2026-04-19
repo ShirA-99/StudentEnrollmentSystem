@@ -3,40 +3,40 @@
     ViewData["Title"] = "Registration History";
 }
 
-<section class="portal-hero portal-hero-compact mb-4">
+<section class="portal-hero portal-hero-compact mb-4" data-reveal="left">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <span class="portal-eyebrow">Registration history</span>
-            <h1 class="h2 mb-1">Enrollment activity timeline</h1>
+            <h1 class="h2 mb-1">Semester activity timeline</h1>
             <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber)</p>
             <p class="text-secondary mb-0">@Model.ProgramName</p>
         </div>
-        <a class="btn btn-outline-primary" asp-action="Index">Back To Add or Drop</a>
+        <a class="btn btn-outline-primary" asp-action="Index">Back To Add / Drop</a>
     </div>
 
     <div class="row g-3">
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="40">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Total actions</span>
                 <div class="stat-value">@Model.TotalActions</div>
-                <div class="stat-meta">All recorded registration changes</div>
+                <div class="stat-meta">All recorded semester registration changes</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="80">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Added</span>
                 <div class="stat-value">@Model.AddedCount</div>
-                <div class="stat-meta">Successful registration actions</div>
+                <div class="stat-meta">Successful section additions</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="120">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Dropped</span>
                 <div class="stat-value">@Model.DroppedCount</div>
-                <div class="stat-meta">Sections removed from timetable</div>
+                <div class="stat-meta">Sections removed from the timetable</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="160">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Latest activity</span>
                 <div class="stat-meta stat-meta-strong">@Model.LatestActivityText</div>
@@ -45,49 +45,70 @@
     </div>
 </section>
 
-<div class="portal-surface">
-        @if (!Model.HistoryItems.Any())
-        {
-            <div class="empty-state compact">
-                <h2 class="h4 mb-2">No history available yet</h2>
-                <p class="text-secondary mb-0">Completed add and drop actions will appear here once registration changes have been submitted.</p>
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table portal-table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Action</th>
-                            <th>Semester</th>
-                            <th>Course</th>
-                            <th>Section</th>
-                            <th>Timestamp</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var item in Model.HistoryItems)
-                    {
-                        <tr>
-                            <td>
-                                <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger") rounded-pill px-3 py-2">
-                                    @item.ActionTypeLabel
-                                </span>
-                            </td>
-                            <td>@item.SemesterName</td>
-                            <td>
-                                <div class="fw-semibold">@item.CourseCode</div>
-                                <div class="text-secondary small">@item.CourseTitle</div>
-                            </td>
-                            <td>@item.SectionCode</td>
-                            <td>@item.ActionAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
-                            <td>@(string.IsNullOrWhiteSpace(item.Remarks) ? "-" : item.Remarks)</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        }
+<div class="portal-surface" data-reveal="right">
+    @if (!Model.HistoryItems.Any())
+    {
+        <div class="empty-state compact">
+            <h2 class="h4 mb-2">No history available yet</h2>
+            <p class="text-secondary mb-0">Completed add / drop actions will appear here once semester registration changes have been submitted.</p>
+        </div>
+    }
+    else
+    {
+        <div class="d-md-none vstack gap-3">
+            @for (var index = 0; index < Model.HistoryItems.Count; index++)
+            {
+                var item = Model.HistoryItems[index];
+                <article class="registration-card" data-reveal data-delay="@(index * 35)">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <div>
+                            <div class="fw-semibold">@item.CourseCode</div>
+                            <div class="text-secondary small">@item.CourseTitle</div>
+                        </div>
+                        <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger") rounded-pill px-3 py-2">
+                            @item.ActionTypeLabel
+                        </span>
+                    </div>
+                    <div class="text-secondary small mb-1">Semester: @item.SemesterName</div>
+                    <div class="text-secondary small mb-1">Section: @item.SectionCode</div>
+                    <div class="text-secondary small mb-1">Timestamp: @item.ActionAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                    <div class="text-secondary small">Remarks: @(string.IsNullOrWhiteSpace(item.Remarks) ? "-" : item.Remarks)</div>
+                </article>
+            }
+        </div>
+        <div class="table-responsive d-none d-md-block">
+            <table class="table portal-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Semester</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>Timestamp</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.HistoryItems)
+                {
+                    <tr>
+                        <td>
+                            <span class="badge @(item.ActionTypeLabel == "Added" ? "text-bg-success" : "text-bg-danger") rounded-pill px-3 py-2">
+                                @item.ActionTypeLabel
+                            </span>
+                        </td>
+                        <td>@item.SemesterName</td>
+                        <td>
+                            <div class="fw-semibold">@item.CourseCode</div>
+                            <div class="text-secondary small">@item.CourseTitle</div>
+                        </td>
+                        <td>@item.SectionCode</td>
+                        <td>@item.ActionAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.Remarks) ? "-" : item.Remarks)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>

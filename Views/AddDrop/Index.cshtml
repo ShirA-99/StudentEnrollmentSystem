@@ -1,45 +1,54 @@
 @model AddDropIndexViewModel
 @{
-    ViewData["Title"] = "Add or Drop";
+    ViewData["Title"] = "Add / Drop";
+    var invalidDropEnrollmentId = ViewData["InvalidDropEnrollmentId"] is int id ? id : 0;
+    var invalidDropRemarks = ViewData["InvalidDropRemarks"] as string ?? string.Empty;
+    var remarksError = ViewData.ModelState["Remarks"]?.Errors.FirstOrDefault()?.ErrorMessage;
 }
 
-<section class="portal-hero portal-hero-compact mb-4">
+<section class="portal-hero portal-hero-compact mb-4" data-reveal="left">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <span class="portal-eyebrow">Timetable management</span>
-            <h1 class="h2 mb-1">Add or drop classes</h1>
+            <span class="portal-eyebrow">Semester add / drop</span>
+            <h1 class="h2 mb-1">Manage your semester timetable</h1>
             <p class="text-secondary mb-1">@Model.StudentName (@Model.StudentNumber) | @Model.ProgramName</p>
             <p class="text-secondary mb-0">@Model.SemesterName | Registration window: @Model.RegistrationWindow</p>
         </div>
-        <a class="btn btn-outline-primary" asp-action="History">View Registration History</a>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="portal-chip portal-chip-contrast">@Model.TotalHistoryEvents changes recorded</span>
+            <a class="btn btn-outline-primary" asp-action="History">View Registration History</a>
+        </div>
+    </div>
+
+    <div class="alert @(Model.IsRegistrationOpen ? "alert-success" : "alert-warning") portal-status-banner mb-4" role="status">
+        @Model.RegistrationStatusMessage
     </div>
 
     <div class="row g-3">
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="40">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Current classes</span>
                 <div class="stat-value">@Model.ActiveEnrollmentCount</div>
-                <div class="stat-meta">Active sections in your timetable</div>
+                <div class="stat-meta">Active sections in your semester timetable</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="80">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Credit hours</span>
                 <div class="stat-value">@Model.CurrentCreditHours</div>
-                <div class="stat-meta">Study load for the active term</div>
+                <div class="stat-meta">Study load for the active semester</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="120">
             <div class="portal-surface stat-card h-100">
                 <span class="stat-label">Open sections</span>
                 <div class="stat-value">@Model.AvailableSectionCount</div>
                 <div class="stat-meta">Additional sections currently available to add</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 col-xl-3" data-reveal data-delay="160">
             <div class="portal-surface stat-card h-100">
-                <span class="stat-label">Recorded changes</span>
-                <div class="stat-value">@Model.TotalHistoryEvents</div>
+                <span class="stat-label">Latest semester activity</span>
                 <div class="stat-meta stat-meta-strong">@Model.RecentActivityText</div>
             </div>
         </div>
@@ -47,7 +56,7 @@
 </section>
 
 <div class="row g-4">
-    <div class="col-lg-7">
+    <div class="col-lg-7" data-reveal="left">
         <div class="portal-surface h-100">
             <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                 <div>
@@ -56,13 +65,17 @@
                 </div>
                 <span class="portal-chip portal-chip-contrast">@Model.ActiveEnrollmentCount active</span>
             </div>
-            <div class="text-secondary small mb-4">Dropping a class updates your timetable immediately and writes a permanent audit entry to registration history.</div>
+            <div class="text-secondary small mb-4">
+                @(Model.IsRegistrationOpen
+                    ? "Dropping a class updates your semester timetable immediately and writes a permanent audit entry to registration history."
+                    : "Registration changes are closed right now, so your current timetable is shown in read-only mode.")
+            </div>
             <div class="vstack gap-3">
                 @if (!Model.CurrentEnrollments.Any())
                 {
                     <div class="empty-state compact">
                         <h3 class="h5 mb-2">No active classes yet</h3>
-                        <p class="text-secondary mb-0">Use the available section list to begin building your timetable for this semester.</p>
+                        <p class="text-secondary mb-0">Use the available section list to begin building your semester timetable.</p>
                     </div>
                 }
                 else
@@ -75,7 +88,7 @@
                                     <div class="section-course-code mb-1">@enrollment.CourseCode</div>
                                     <div class="fw-semibold mb-1">@enrollment.CourseTitle</div>
                                     <div class="text-secondary small mb-1">Section @enrollment.SectionCode | @enrollment.CreditHours credit hours</div>
-                                    <div class="text-secondary small mb-1">Instructor: @enrollment.InstructorName</div>
+                                    <div class="text-secondary small mb-1">Lecturer: @enrollment.InstructorName</div>
                                     <div class="text-secondary small">@enrollment.ScheduleSummary</div>
                                 </div>
                                 <div class="registration-actions">
@@ -83,8 +96,21 @@
                                     <form asp-action="Drop" method="post" class="drop-form">
                                         <input type="hidden" name="EnrollmentId" value="@enrollment.EnrollmentId" />
                                         <label class="form-label small fw-semibold" for="drop-@enrollment.EnrollmentId">Reason for dropping</label>
-                                        <textarea id="drop-@enrollment.EnrollmentId" class="form-control form-control-sm" name="Remarks" rows="2" maxlength="300" placeholder="Provide a brief reason to document this change." required></textarea>
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">Drop Section</button>
+                                        <textarea id="drop-@enrollment.EnrollmentId"
+                                                  class="form-control form-control-sm @(invalidDropEnrollmentId == enrollment.EnrollmentId && !string.IsNullOrWhiteSpace(remarksError) ? "is-invalid" : string.Empty)"
+                                                  name="Remarks"
+                                                  rows="2"
+                                                  maxlength="300"
+                                                  placeholder="Provide a brief reason for this semester change."
+                                                  required
+                                                  readonly="@(!Model.IsRegistrationOpen)">@(invalidDropEnrollmentId == enrollment.EnrollmentId ? invalidDropRemarks : string.Empty)</textarea>
+                                        @if (invalidDropEnrollmentId == enrollment.EnrollmentId && !string.IsNullOrWhiteSpace(remarksError))
+                                        {
+                                            <div class="invalid-feedback d-block">@remarksError</div>
+                                        }
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" disabled="@(!Model.IsRegistrationOpen)">
+                                            @(Model.IsRegistrationOpen ? "Drop Section" : "Add / Drop Closed")
+                                        </button>
                                     </form>
                                 </div>
                             </div>
@@ -95,7 +121,7 @@
         </div>
     </div>
 
-    <div class="col-lg-5">
+    <div class="col-lg-5" data-reveal="right" data-delay="80">
         <div class="portal-surface h-100">
             <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                 <div>
@@ -114,9 +140,10 @@
                 }
                 else
                 {
-                    @foreach (var item in Model.AvailableSections)
+                    @for (var index = 0; index < Model.AvailableSections.Count; index++)
                     {
-                        <article class="section-card section-card-compact">
+                        var item = Model.AvailableSections[index];
+                        <article class="section-card section-card-compact" data-reveal data-delay="@(index * 45)">
                             <div class="d-flex justify-content-between gap-3 align-items-start mb-2">
                                 <div>
                                     <div class="section-course-code mb-1">@item.CourseCode</div>
@@ -126,10 +153,12 @@
                             </div>
                             <div class="text-secondary small mb-1">Section @item.SectionCode | @item.CreditHours credit hours</div>
                             <div class="text-secondary small mb-1">@item.ScheduleSummary</div>
-                            <div class="text-secondary small mb-3">Instructor: @item.InstructorName</div>
+                            <div class="text-secondary small mb-3">Lecturer: @item.InstructorName</div>
                             <form asp-action="Add" method="post" class="d-flex justify-content-end">
                                 <input type="hidden" name="sectionId" value="@item.SectionId" />
-                                <button type="submit" class="btn btn-primary btn-sm">Add Section</button>
+                                <button type="submit" class="btn btn-primary btn-sm" disabled="@(!Model.IsRegistrationOpen)">
+                                    @(Model.IsRegistrationOpen ? "Add Section" : "Read Only")
+                                </button>
                             </form>
                         </article>
                     }

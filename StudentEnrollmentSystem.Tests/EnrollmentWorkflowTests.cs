@@ -133,6 +133,90 @@ public class EnrollmentWorkflowTests
         Assert.NotNull(updatedEnrollment.DroppedAtUtc);
     }
 
+    [Fact]
+    public async Task GetEnrollmentCatalogAsync_WhenRegistrationIsClosed_ReturnsPlanningState()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.CloseEnrollmentWindow();
+
+        var service = new EnrollmentService(fixture.Context);
+
+        var result = await service.GetEnrollmentCatalogAsync(fixture.PrimaryStudent.ApplicationUserId);
+
+        Assert.False(result.IsRegistrationOpen);
+        Assert.Equal("Current Semester", result.SemesterName);
+        Assert.Contains("currently closed", result.RegistrationStatusMessage);
+    }
+
+    [Fact]
+    public async Task EnrollAsync_WhenRegistrationIsClosed_ReturnsFriendlyFailure()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.CloseEnrollmentWindow();
+
+        var service = new EnrollmentService(fixture.Context);
+
+        var result = await service.EnrollAsync(fixture.PrimaryStudent.ApplicationUserId, fixture.WritingSection.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("currently closed", result.Message);
+    }
+
+    [Fact]
+    public async Task DropCourseAsync_WhenRegistrationIsClosed_ReturnsFriendlyFailure()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.CloseEnrollmentWindow();
+
+        var enrollment = new EnrollmentRecord
+        {
+            StudentProfileId = fixture.PrimaryStudent.Id,
+            CourseSectionId = fixture.ProgrammingSection.Id,
+            Status = EnrollmentStatus.Enrolled,
+            EnrolledAtUtc = DateTime.UtcNow.AddDays(-1)
+        };
+
+        fixture.Context.EnrollmentRecords.Add(enrollment);
+        await fixture.Context.SaveChangesAsync();
+
+        var service = new AddDropService(fixture.Context, new EnrollmentService(fixture.Context));
+
+        var result = await service.DropCourseAsync(
+            fixture.PrimaryStudent.ApplicationUserId,
+            enrollment.Id,
+            "Unable to continue");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("currently closed", result.Message);
+    }
+
+    [Fact]
+    public async Task DropCourseAsync_RequiresNonEmptyReason()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var enrollment = new EnrollmentRecord
+        {
+            StudentProfileId = fixture.PrimaryStudent.Id,
+            CourseSectionId = fixture.ProgrammingSection.Id,
+            Status = EnrollmentStatus.Enrolled,
+            EnrolledAtUtc = DateTime.UtcNow.AddDays(-1)
+        };
+
+        fixture.Context.EnrollmentRecords.Add(enrollment);
+        await fixture.Context.SaveChangesAsync();
+
+        var service = new AddDropService(fixture.Context, new EnrollmentService(fixture.Context));
+
+        var result = await service.DropCourseAsync(
+            fixture.PrimaryStudent.ApplicationUserId,
+            enrollment.Id,
+            "   ");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("drop reason is required", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class TestFixture : IAsyncDisposable
     {
         private TestFixture(ApplicationDbContext context)
@@ -169,6 +253,14 @@ public class EnrollmentWorkflowTests
         public async ValueTask DisposeAsync()
         {
             await Context.DisposeAsync();
+        }
+
+        public void CloseEnrollmentWindow()
+        {
+            var semester = Context.Semesters.Single();
+            semester.Status = SemesterStatus.Closed;
+            semester.EnrollmentEndDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+            Context.SaveChanges();
         }
 
         private async Task SeedAsync()
