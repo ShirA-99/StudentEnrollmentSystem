@@ -1,0 +1,85 @@
+@model StudentEnrollmentSystem.ViewModels.TimetableMatchingViewModel
+
+@{
+    ViewData["Title"] = "Timetable Matching";
+}
+
+<div class="card enquiry-card mt-4">
+    <div class="card-body">
+        <form asp-action="TimetableMatching" method="post">
+            <div class="table-responsive enquiry-table">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Select</th>
+                            <th>Course Code</th>
+                            <th>Course Title</th>
+                            <th>Section</th>
+                            <th>Instructor</th>
+                            <th>Day</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Venue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.AvailableSections.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input asp-for="AvailableSections[i].IsSelected" />
+                                    <input asp-for="AvailableSections[i].MeetingId" type="hidden" />
+                                    <input asp-for="AvailableSections[i].CourseSectionId" type="hidden" />
+                                    <input asp-for="AvailableSections[i].CourseCode" type="hidden" />
+                                    <input asp-for="AvailableSections[i].CourseTitle" type="hidden" />
+                                    <input asp-for="AvailableSections[i].SectionCode" type="hidden" />
+                                    <input asp-for="AvailableSections[i].InstructorName" type="hidden" />
+                                    <input asp-for="AvailableSections[i].DayOfWeek" type="hidden" />
+                                    <input asp-for="AvailableSections[i].StartTime" type="hidden" />
+                                    <input asp-for="AvailableSections[i].EndTime" type="hidden" />
+                                    <input asp-for="AvailableSections[i].Venue" type="hidden" />
+                                </td>
+                                <td>@Model.AvailableSections[i].CourseCode</td>
+                                <td>@Model.AvailableSections[i].CourseTitle</td>
+                                <td>@Model.AvailableSections[i].SectionCode</td>
+                                <td>@Model.AvailableSections[i].InstructorName</td>
+                                <td>@Model.AvailableSections[i].DayOfWeek</td>
+                                <td>@Model.AvailableSections[i].StartTime.ToString("hh:mm tt")</td>
+                                <td>@Model.AvailableSections[i].EndTime.ToString("hh:mm tt")</td>
+                                <td>@Model.AvailableSections[i].Venue</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="enquiry-actions">
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Check for Clash</button>
+                <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">Back</a>
+            </div>
+        </form>
+
+        <div class="enquiry-result">
+            @if (Model.HasChecked)
+            {
+                if (Model.ClashMessages.Any())
+                {
+                    <div class="alert alert-danger rounded-4">
+                        <ul class="mb-0">
+                            @foreach (var message in Model.ClashMessages)
+                            {
+                                <li>@message</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-success rounded-4">
+                        No timetable clash detected for the selected timetable entries.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

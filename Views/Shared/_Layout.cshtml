@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StudentEnrollmentSystem.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/enquiry.css" asp-append-version="true" />
 </head>
 <body class="portal-shell">
     @{
@@ -61,6 +62,12 @@
                             </li>
                             <li class="nav-item">
                                 <a class="@NavClass("Statement", "Index")" asp-controller="Statement" asp-action="Index">Statement</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("Enquiry", "Index")" asp-controller="Enquiry" asp-action="Index">Enquiry</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("Evaluation", "Create")" asp-controller="Evaluation" asp-action="Create">Evaluation</a>
                             </li>
                         }
                     </ul>

@@ -1,0 +1,53 @@
+.enquiry-page-title {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.enquiry-page-subtitle {
+    color: #6c757d;
+    margin-bottom: 2rem;
+}
+
+.enquiry-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08);
+}
+
+.enquiry-card .card-body {
+    padding: 2rem;
+}
+
+.enquiry-form label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.enquiry-form .form-control {
+    border-radius: 0.9rem;
+    padding: 0.85rem 1rem;
+}
+
+.enquiry-form textarea.form-control {
+    min-height: 140px;
+}
+
+.enquiry-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.enquiry-table {
+    background-color: white;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.enquiry-table th {
+    white-space: nowrap;
+}
+
+.enquiry-result {
+    margin-top: 1.5rem;
+}

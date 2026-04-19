@@ -14,6 +14,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SectionMeeting> SectionMeetings => Set<SectionMeeting>();
     public DbSet<Semester> Semesters => Set<Semester>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
+    public DbSet<ContactUsMessage> ContactUsMessages => Set<ContactUsMessage>();
+    public DbSet<TeachingEvaluation> TeachingEvaluations => Set<TeachingEvaluation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = "Enquiry";
+}
+
+<div class="container mt-5">
+    <div class="mb-4">
+        <h1 class="display-6 fw-bold">Enquiry</h1>
+        <p class="text-muted">Access student support services, timetable checking, and teaching evaluation.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">Contact Us</h4>
+                    <p class="card-text text-muted">
+                        Submit enquiries or questions to the student support team.
+                    </p>
+                    <a asp-controller="Enquiry" asp-action="ContactUs" class="btn btn-primary rounded-pill px-4">
+                        Open
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">Timetable Matching</h4>
+                    <p class="card-text text-muted">
+                        Select timetable entries and check for schedule clashes.
+                    </p>
+                    <a asp-controller="Enquiry" asp-action="TimetableMatching" class="btn btn-primary rounded-pill px-4">
+                        Open
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-3">Teaching Evaluation</h4>
+                    <p class="card-text text-muted">
+                        Submit student feedback on teaching quality and learning experience.
+                    </p>
+                    <a asp-controller="Evaluation" asp-action="Create" class="btn btn-primary rounded-pill px-4">
+                        Open
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
