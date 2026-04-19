@@ -42,17 +42,53 @@
                     <span class="quick-fact-value">@Model.BankAccountMask</span>
                 </div>
             </div>
-            <div class="profile-nav mt-4">
-                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "profile" ? "active" : string.Empty)" href="#profile-details">Personal Information</a>
-                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "bank" ? "active" : string.Empty)" href="#bank-details">Bank Details</a>
-                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "password" ? "active" : string.Empty)" href="#password-settings">Change Password</a>
+            <div class="profile-nav mt-4" role="tablist" aria-label="Profile sections" data-profile-tabs data-active-section="@Model.ActiveSection">
+                <button
+                    type="button"
+                    class="profile-tab-button @(Model.ActiveSection == "profile" ? "is-active" : string.Empty)"
+                    id="profile-tab-profile"
+                    data-profile-tab="profile"
+                    data-target-panel="profile-details"
+                    role="tab"
+                    aria-controls="profile-details"
+                    aria-selected="@(Model.ActiveSection == "profile" ? "true" : "false")">
+                    Personal Information
+                </button>
+                <button
+                    type="button"
+                    class="profile-tab-button @(Model.ActiveSection == "bank" ? "is-active" : string.Empty)"
+                    id="profile-tab-bank"
+                    data-profile-tab="bank"
+                    data-target-panel="bank-details"
+                    role="tab"
+                    aria-controls="bank-details"
+                    aria-selected="@(Model.ActiveSection == "bank" ? "true" : "false")">
+                    Bank Details
+                </button>
+                <button
+                    type="button"
+                    class="profile-tab-button @(Model.ActiveSection == "password" ? "is-active" : string.Empty)"
+                    id="profile-tab-password"
+                    data-profile-tab="password"
+                    data-target-panel="password-settings"
+                    role="tab"
+                    aria-controls="password-settings"
+                    aria-selected="@(Model.ActiveSection == "password" ? "true" : "false")">
+                    Change Password
+                </button>
             </div>
         </div>
     </div>
 
     <div class="col-xl-8">
-        <div class="vstack gap-4">
-            <section id="profile-details" class="portal-surface profile-card">
+        <div class="profile-panel-stack" data-profile-panels>
+            <section
+                id="profile-details"
+                class="portal-surface profile-card @(Model.ActiveSection == "profile" ? "is-active" : string.Empty)"
+                data-profile-panel="profile"
+                role="tabpanel"
+                aria-labelledby="profile-tab-profile"
+                @(Model.ActiveSection == "profile" ? null : "hidden")>
                 <div class="mb-4">
                     <span class="portal-eyebrow">Update profile</span>
                     <h2 class="h4 mb-2">Personal information</h2>
@@ -108,7 +144,13 @@
                 </form>
             </section>
 
-            <section id="bank-details" class="portal-surface profile-card">
+            <section
+                id="bank-details"
+                class="portal-surface profile-card @(Model.ActiveSection == "bank" ? "is-active" : string.Empty)"
+                data-profile-panel="bank"
+                role="tabpanel"
+                aria-labelledby="profile-tab-bank"
+                @(Model.ActiveSection == "bank" ? null : "hidden")>
                 <div class="mb-4">
                     <span class="portal-eyebrow">Update banking</span>
                     <h2 class="h4 mb-2">Bank details</h2>
@@ -140,7 +182,13 @@
                 </form>
             </section>
 
-            <section id="password-settings" class="portal-surface profile-card">
+            <section
+                id="password-settings"
+                class="portal-surface profile-card @(Model.ActiveSection == "password" ? "is-active" : string.Empty)"
+                data-profile-panel="password"
+                role="tabpanel"
+                aria-labelledby="profile-tab-password"
+                @(Model.ActiveSection == "password" ? null : "hidden")>
                 <div class="mb-4">
                     <span class="portal-eyebrow">Security</span>
                     <h2 class="h4 mb-2">Change password</h2>
