@@ -13,7 +13,7 @@ public static class DbInitializer
 
         await context.Database.MigrateAsync();
         await EnsureAcademicDataAsync(context);
-        await EnsureUsersAsync(userManager);
+        await EnsureUsersAsync(context, userManager);
         await EnsureStudentProfilesAsync(context, userManager);
         await EnsureEnrollmentHistoryAsync(context);
     }
@@ -132,11 +132,18 @@ public static class DbInitializer
         await context.SaveChangesAsync();
     }
 
-    private static async Task EnsureUsersAsync(UserManager<ApplicationUser> userManager)
+    private static async Task EnsureUsersAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
+        var users = await userManager.Users
+            .Include(user => user.StudentProfile)
+            .ToListAsync();
+
         foreach (var seed in CreateUserSeeds())
         {
-            var user = await userManager.FindByEmailAsync(seed.Email);
+            var user = users.SingleOrDefault(existingUser =>
+                string.Equals(existingUser.Email, seed.Email, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(existingUser.StudentProfile?.StudentNumber, seed.StudentNumber, StringComparison.OrdinalIgnoreCase));
+
             if (user is null)
             {
                 user = new ApplicationUser
@@ -154,13 +161,15 @@ public static class DbInitializer
                         $"Failed to create seeded user {seed.Email}: {string.Join(", ", createResult.Errors.Select(error => error.Description))}");
                 }
 
+                users.Add(user);
                 continue;
             }
 
-            user.UserName = seed.Email;
-            user.Email = seed.Email;
             user.EmailConfirmed = true;
-            user.DisplayName = seed.DisplayName;
+            if (string.IsNullOrWhiteSpace(user.DisplayName))
+            {
+                user.DisplayName = seed.DisplayName;
+            }
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
@@ -174,30 +183,65 @@ public static class DbInitializer
     private static async Task EnsureStudentProfilesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
         var semesters = await context.Semesters.ToDictionaryAsync(semester => semester.Code);
-        var users = await userManager.Users.ToDictionaryAsync(user => user.Email!);
-        var existingProfiles = await context.StudentProfiles.ToDictionaryAsync(profile => profile.Email);
+        var users = await userManager.Users
+            .Include(user => user.StudentProfile)
+            .ToListAsync();
+        var existingProfiles = await context.StudentProfiles.ToListAsync();
 
         foreach (var seed in CreateUserSeeds())
         {
-            if (!users.TryGetValue(seed.Email, out var user))
+            var user = users.SingleOrDefault(existingUser =>
+                string.Equals(existingUser.Email, seed.Email, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(existingUser.StudentProfile?.StudentNumber, seed.StudentNumber, StringComparison.OrdinalIgnoreCase));
+
+            if (user is null)
             {
                 throw new InvalidOperationException($"Seeded user {seed.Email} was not found after user initialization.");
             }
 
-            if (existingProfiles.TryGetValue(seed.Email, out var profile))
+            var profile = existingProfiles.SingleOrDefault(existingProfile =>
+                string.Equals(existingProfile.StudentNumber, seed.StudentNumber, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(existingProfile.ApplicationUserId, user.Id, StringComparison.Ordinal));
+
+            if (profile is not null)
             {
                 profile.ApplicationUserId = user.Id;
-                profile.StudentNumber = seed.StudentNumber;
-                profile.FullName = seed.DisplayName;
-                profile.Email = seed.Email;
-                profile.ProgramName = seed.ProgramName;
-                profile.ProgramCode = seed.ProgramCode;
-                profile.IntakeLabel = seed.IntakeLabel;
+
+                if (string.IsNullOrWhiteSpace(profile.StudentNumber))
+                {
+                    profile.StudentNumber = seed.StudentNumber;
+                }
+
+                if (string.IsNullOrWhiteSpace(profile.FullName))
+                {
+                    profile.FullName = seed.DisplayName;
+                }
+
+                if (string.IsNullOrWhiteSpace(profile.Email))
+                {
+                    profile.Email = seed.Email;
+                }
+
+                if (string.IsNullOrWhiteSpace(profile.ProgramName))
+                {
+                    profile.ProgramName = seed.ProgramName;
+                }
+
+                if (string.IsNullOrWhiteSpace(profile.ProgramCode))
+                {
+                    profile.ProgramCode = seed.ProgramCode;
+                }
+
+                if (string.IsNullOrWhiteSpace(profile.IntakeLabel))
+                {
+                    profile.IntakeLabel = seed.IntakeLabel;
+                }
+
                 profile.CurrentSemesterId = semesters[seed.CurrentSemesterCode].Id;
             }
             else
             {
-                await context.StudentProfiles.AddAsync(new StudentProfile
+                profile = new StudentProfile
                 {
                     ApplicationUserId = user.Id,
                     StudentNumber = seed.StudentNumber,
@@ -208,6 +252,9 @@ public static class DbInitializer
                     IntakeLabel = seed.IntakeLabel,
                     CurrentSemesterId = semesters[seed.CurrentSemesterCode].Id
                 });
+
+                await context.StudentProfiles.AddAsync(profile);
+                existingProfiles.Add(profile);
             }
         }
 

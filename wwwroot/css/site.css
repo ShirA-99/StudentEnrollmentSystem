@@ -170,6 +170,22 @@ body::after {
   background: linear-gradient(90deg, var(--portal-accent), var(--portal-secondary));
 }
 
+.portal-user-link {
+  position: relative;
+  color: var(--portal-primary-dark) !important;
+}
+
+.portal-user-link::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(15, 108, 139, 0.22);
+}
+
 .portal-user-pill {
   display: inline-flex;
   align-items: center;
@@ -482,6 +498,95 @@ body::after {
 .auth-helper-list {
   display: grid;
   gap: 0.75rem;
+}
+
+.profile-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.profile-nav {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-tab-button {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(11, 93, 107, 0.18);
+  border-radius: 1rem;
+  color: var(--portal-primary-dark);
+  font-family: var(--portal-sans);
+  font-size: 0.98rem;
+  font-weight: 700;
+  text-align: left;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.94), rgba(255, 248, 239, 0.9)),
+    radial-gradient(circle at top right, rgba(240, 180, 41, 0.08), transparent 30%);
+  box-shadow: 0 10px 24px rgba(24, 38, 58, 0.06);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.profile-tab-button:hover,
+.profile-tab-button:focus-visible {
+  color: var(--portal-primary-dark);
+  border-color: rgba(11, 93, 107, 0.32);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.98), rgba(255, 242, 225, 0.96)),
+    radial-gradient(circle at top right, rgba(240, 180, 41, 0.14), transparent 32%);
+  box-shadow: 0 14px 30px rgba(24, 38, 58, 0.09);
+  transform: translateY(-1px);
+}
+
+.profile-tab-button.is-active {
+  color: #fffdf8;
+  border-color: transparent;
+  background:
+    linear-gradient(135deg, var(--portal-primary), #11788a),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent 40%);
+  box-shadow: 0 16px 30px rgba(11, 93, 107, 0.22);
+}
+
+.profile-tab-button.is-active:hover,
+.profile-tab-button.is-active:focus-visible {
+  color: #fffdf8;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--portal-primary-dark), var(--portal-primary));
+}
+
+.profile-panel-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-card {
+  scroll-margin-top: 6rem;
+  animation: profilePanelFade 0.28s ease;
+}
+
+.profile-card[hidden] {
+  display: none !important;
+}
+
+.profile-card.is-active {
+  display: block;
+}
+
+@keyframes profilePanelFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .portal-table thead th {

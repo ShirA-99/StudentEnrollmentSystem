@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudentEnrollmentSystem.Data;
 
@@ -11,9 +12,11 @@ using StudentEnrollmentSystem.Data;
 namespace StudentEnrollmentSystem.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260419134624_AddUserAddressFields")]
+    partial class AddUserAddressFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -306,11 +309,6 @@ namespace StudentEnrollmentSystem.Data.Migrations
                     b.Property<int>("CreditHours")
                         .HasColumnType("int");
 
-                    b.Property<string>("EligibleProgrammeCodes")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -437,9 +435,6 @@ namespace StudentEnrollmentSystem.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateOnly>("AddDropEndDate")
-                        .HasColumnType("date");
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -455,9 +450,6 @@ namespace StudentEnrollmentSystem.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
-
-                    b.Property<DateOnly>("SemesterStartDate")
-                        .HasColumnType("date");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -498,11 +490,6 @@ namespace StudentEnrollmentSystem.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("ProgramCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ProgramName")
                         .IsRequired()
