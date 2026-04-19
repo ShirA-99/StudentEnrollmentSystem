@@ -1,0 +1,167 @@
+@model StudentEnrollmentSystem.Models.StudentProfile
+@using StudentEnrollmentSystem.Models
+
+@{
+    ViewData["Title"] = "Student Statement";
+    var enrolledRecords = Model.EnrollmentRecords?
+        .Where(e => e.Status == EnrollmentStatus.Enrolled)
+        .ToList() ?? new List<EnrollmentRecord>();
+
+    var totalFee = enrolledRecords.Count * 1000;
+    var paidAmount = 1000;
+    var outstandingBalance = totalFee - paidAmount;
+}
+
+<div class="container py-3 py-md-4">
+    <section class="rounded-5 shadow-sm p-4 p-md-5 mb-4" style="background-color: #f8fbfd; border: 1px solid #e6edf3;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+            <div>
+                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
+                    Statement
+                </div>
+                <h1 class="fw-bold mb-2" style="color: #163a63; font-size: 3rem;">
+                    Student Statement
+                </h1>
+                <p class="mb-0 text-secondary fs-5">
+                    View your profile, registered subjects, and fee summary for the current semester.
+                </p>
+            </div>
+
+            <div>
+                <a asp-controller="Statement" asp-action="Timetable" class="btn btn-outline-primary rounded-pill px-4 py-2">
+                    View Class Timetable
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Student Name
+                    </div>
+                    <div class="fw-bold fs-3" style="color: #163a63;">
+                        @Model.FullName
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Student ID
+                    </div>
+                    <div class="fw-bold fs-3" style="color: #163a63;">
+                        @Model.StudentNumber
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Programme
+                    </div>
+                    <div class="fw-bold fs-4" style="color: #163a63;">
+                        @Model.ProgramName
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Total Fee
+                    </div>
+                    <div class="fw-bold" style="font-size: 3rem; color: #163a63;">
+                        RM @totalFee
+                    </div>
+                    <div class="text-secondary mt-2">Current semester charges</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Paid Amount
+                    </div>
+                    <div class="fw-bold" style="font-size: 3rem; color: #163a63;">
+                        RM @paidAmount
+                    </div>
+                    <div class="text-secondary mt-2">Payments recorded so far</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .9rem;">
+                        Outstanding Balance
+                    </div>
+                    <div class="fw-bold" style="font-size: 3rem; color: #163a63;">
+                        RM @outstandingBalance
+                    </div>
+                    <div class="text-secondary mt-2">Remaining amount to be paid</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="rounded-5 shadow-sm p-4 p-md-5" style="background-color: #ffffff; border: 1px solid #e6edf3;">
+        <div class="mb-4">
+            <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
+                Registered Courses
+            </div>
+            <h2 class="fw-bold mb-0" style="color: #163a63;">Current Semester Subjects</h2>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead style="background-color: #f3f8fb;">
+                    <tr>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0" style="letter-spacing: .08em; color: #5d7389;">Course Code</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0" style="letter-spacing: .08em; color: #5d7389;">Course Name</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0" style="letter-spacing: .08em; color: #5d7389;">Section</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0" style="letter-spacing: .08em; color: #5d7389;">Fee</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (enrolledRecords.Any())
+                    {
+                        @foreach (var record in enrolledRecords)
+                        {
+                            <tr>
+                                <td class="py-3 px-3 fw-semibold">
+                                    @record.CourseSection.Course.Code
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    <div class="fw-semibold text-dark">
+                                        @record.CourseSection.Course.Title
+                                    </div>
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @record.CourseSection.SectionCode
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    RM 1000
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-secondary">
+                                No enrolled courses found for the current semester.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,558 @@
+@model StudentEnrollmentSystem.Models.StudentProfile
+@using StudentEnrollmentSystem.Models
+
+@{
+    ViewData["Title"] = "Class Timetable";
+
+    var currentSemesterId = ViewBag.CurrentSemesterId as int? ?? 0;
+    var activeSemester = ViewBag.ActiveSemester;
+    var clashOnly = ViewBag.ClashOnly as bool? ?? false;
+
+    var currentSemesterRecords = Model.EnrollmentRecords?
+        .Where(e =>
+            e.Status == EnrollmentStatus.Enrolled &&
+            e.CourseSection != null &&
+            e.CourseSection.SemesterId == currentSemesterId)
+        .ToList() ?? new List<EnrollmentRecord>();
+
+    var days = new List<DayOfWeek>
+    {
+        DayOfWeek.Monday,
+        DayOfWeek.Tuesday,
+        DayOfWeek.Wednesday,
+        DayOfWeek.Thursday,
+        DayOfWeek.Friday
+    };
+
+    var timeSlots = Enumerable.Range(8, 10).ToList(); // 08:00 - 17:00
+
+    var clashRecords = new List<EnrollmentRecord>();
+    bool hasClash = false;
+
+    foreach (var day in days)
+    {
+        var meetingsForDay = currentSemesterRecords
+            .SelectMany(r => r.CourseSection.Meetings.Select(m => new { Record = r, Meeting = m }))
+            .Where(x => x.Meeting.DayOfWeek == day)
+            .OrderBy(x => x.Meeting.StartTime)
+            .ToList();
+
+        for (int i = 0; i < meetingsForDay.Count; i++)
+        {
+            for (int j = i + 1; j < meetingsForDay.Count; j++)
+            {
+                var a = meetingsForDay[i];
+                var b = meetingsForDay[j];
+
+                if (a.Meeting.StartTime < b.Meeting.EndTime && b.Meeting.StartTime < a.Meeting.EndTime)
+                {
+                    hasClash = true;
+
+                    if (!clashRecords.Contains(a.Record))
+                    {
+                        clashRecords.Add(a.Record);
+                    }
+
+                    if (!clashRecords.Contains(b.Record))
+                    {
+                        clashRecords.Add(b.Record);
+                    }
+                }
+            }
+        }
+    }
+
+    var displayedRecords = clashOnly ? clashRecords : currentSemesterRecords;
+
+    var totalSubjects = displayedRecords.Count;
+    var totalCreditHours = displayedRecords.Sum(e => e.CourseSection.Course.CreditHours);
+    var weeklySessions = displayedRecords.Sum(e => e.CourseSection.Meetings.Count);
+
+    var earliestMeeting = displayedRecords
+        .SelectMany(r => r.CourseSection.Meetings)
+        .OrderBy(m => m.StartTime)
+        .FirstOrDefault();
+
+    var latestMeeting = displayedRecords
+        .SelectMany(r => r.CourseSection.Meetings)
+        .OrderByDescending(m => m.EndTime)
+        .FirstOrDefault();
+
+    string GetDayShortName(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "MON",
+            DayOfWeek.Tuesday => "TUE",
+            DayOfWeek.Wednesday => "WED",
+            DayOfWeek.Thursday => "THU",
+            DayOfWeek.Friday => "FRI",
+            _ => day.ToString().ToUpper()
+        };
+    }
+
+    bool IsRecordInClash(EnrollmentRecord record)
+    {
+        return clashRecords.Contains(record);
+    }
+
+    string FormatDisplayTime(dynamic time)
+    {
+        try
+        {
+            return string.Format("{0:hh\\:mm}", time);
+        }
+        catch
+        {
+            return time?.ToString() ?? "";
+        }
+    }
+
+    string FormatTimeRange(dynamic startTime, dynamic endTime)
+    {
+        try
+        {
+            return $"{string.Format("{0:hh\\:mm}", startTime)} - {string.Format("{0:hh\\:mm}", endTime)}";
+        }
+        catch
+        {
+            return $"{startTime} - {endTime}";
+        }
+    }
+
+    string ActiveSemesterText()
+    {
+        if (activeSemester == null)
+        {
+            return "Current Semester";
+        }
+
+        try
+        {
+            return activeSemester.ToString();
+        }
+        catch
+        {
+            return "Current Semester";
+        }
+    }
+}
+
+<div class="container py-3 py-md-4">
+
+    <!-- Page Header -->
+    <section class="rounded-5 shadow-sm p-4 p-md-5 mb-4" style="background-color: #f8fbfd; border: 1px solid #e6edf3;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+            <div>
+                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
+                    Student Portal
+                </div>
+                <h1 class="fw-bold mb-2" style="color: #163a63; font-size: 3rem;">
+                    Class Timetable
+                </h1>
+                <p class="mb-0 text-secondary fs-5">
+                    View your schedule, detect timetable clashes, and download your timetable as PNG.
+                </p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a asp-controller="Statement"
+                   asp-action="Index"
+                   class="btn btn-outline-primary rounded-pill px-4 py-2">
+                    Back To Statement
+                </a>
+
+                @if (clashOnly)
+                {
+                    <a asp-controller="Statement"
+                       asp-action="Timetable"
+                       class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                        Show All Subjects
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Statement"
+                       asp-action="Timetable"
+                       asp-route-clashOnly="true"
+                       class="btn btn-outline-danger rounded-pill px-4 py-2">
+                        Show Only Clash Subjects
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Subjects
+                    </div>
+                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                        @totalSubjects
+                    </div>
+                    <div class="text-secondary mt-2 small">Currently displayed</div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Credit Hours
+                    </div>
+                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                        @totalCreditHours
+                    </div>
+                    <div class="text-secondary mt-2 small">Registered credits</div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Sessions
+                    </div>
+                    <div class="fw-bold" style="font-size: 2.5rem; color: #163a63;">
+                        @weeklySessions
+                    </div>
+                    <div class="text-secondary mt-2 small">Meetings per week</div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Earliest Class
+                    </div>
+                    <div class="fw-bold" style="font-size: 1.75rem; color: #163a63;">
+                        @(earliestMeeting != null ? FormatDisplayTime(earliestMeeting.StartTime) : "-")
+                    </div>
+                    <div class="text-secondary mt-2 small">First session start</div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Latest End
+                    </div>
+                    <div class="fw-bold" style="font-size: 1.75rem; color: #163a63;">
+                        @(latestMeeting != null ? FormatDisplayTime(latestMeeting.EndTime) : "-")
+                    </div>
+                    <div class="text-secondary mt-2 small">Last session ends</div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="rounded-4 p-4 h-100" style="background-color: #ffffff; border: 1px solid #e8eef4;">
+                    <div class="text-uppercase fw-semibold mb-3" style="letter-spacing: .12em; color: #6a7f95; font-size: .85rem;">
+                        Clash Status
+                    </div>
+
+                    @if (hasClash)
+                    {
+                        <div class="fw-bold fs-5 px-3 py-2 rounded-3 text-white d-inline-block" style="background-color: #dc3545;">
+                            Clash Detected
+                        </div>
+                        <div class="text-secondary mt-2 small">Overlapping classes found</div>
+                    }
+                    else
+                    {
+                        <div class="fw-bold fs-5 px-3 py-2 rounded-3 text-white d-inline-block" style="background-color: #198754;">
+                            No Clash
+                        </div>
+                        <div class="text-secondary mt-2 small">No timetable conflict</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Subjects Overview -->
+    <section class="rounded-5 shadow-sm p-4 p-md-5 mb-4" style="background-color: #ffffff; border: 1px solid #e6edf3;">
+        <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
+                    Subject Overview
+                </div>
+                <h2 class="fw-bold mb-0" style="color: #163a63;">Registered Subjects</h2>
+            </div>
+
+            <div class="fw-semibold text-secondary">
+                Active Semester:
+                <span class="fw-bold" style="color:#163a63;">@ActiveSemesterText()</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            @if (hasClash)
+            {
+                <div class="alert alert-danger rounded-4">
+                    <strong>Warning:</strong>
+                    Your timetable contains scheduling conflicts. Please review and adjust your selected subjects accordingly.
+                </div>
+            }
+            else if (totalCreditHours > 20)
+            {
+                <div class="alert alert-warning rounded-4">
+                    <strong>Notice:</strong>
+                    Your total credit hours are relatively high. Please ensure you can manage your workload effectively.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-success rounded-4">
+                    Your schedule looks well-balanced. Keep up the good work!
+                </div>
+            }
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead style="background-color: #f3f8fb;">
+                    <tr>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Course</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Course Name</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Lecturer</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Section</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Credit Hours</th>
+                        <th class="py-3 px-3 text-uppercase fw-semibold border-0">Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (displayedRecords.Any())
+                    {
+                        @foreach (var record in displayedRecords)
+                        {
+                            var isClashRecord = IsRecordInClash(record);
+
+                            <tr style="@(isClashRecord ? "background-color:#fff5f5;" : "")">
+                                <td class="py-3 px-3 fw-semibold">
+                                    @record.CourseSection.Course.Code
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @record.CourseSection.Course.Title
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @record.CourseSection.InstructorName
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @record.CourseSection.SectionCode
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @record.CourseSection.Course.CreditHours
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    @if (isClashRecord)
+                                    {
+                                        <span class="badge rounded-pill" style="background-color:#dc3545;">Clash</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill" style="background-color:#198754;">Normal</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-secondary">
+                                @(clashOnly ? "No clash subjects found." : "No registered subjects found.")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Timetable -->
+    <section class="rounded-5 shadow-sm p-4 p-md-5" style="background-color: #ffffff; border: 1px solid #e6edf3;">
+        <div class="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="text-uppercase fw-semibold mb-2" style="letter-spacing: .12em; color: #0b6a88; font-size: .95rem;">
+                    Timetable
+                </div>
+                <h2 class="fw-bold mb-1" style="color: #163a63;">
+                    Class Timetable
+                </h2>
+
+                <div class="fw-semibold d-flex flex-wrap align-items-center" style="font-size: 1rem;">
+                    <span style="color:#163a63;">@Model.FullName</span>
+                    <span class="mx-2 text-secondary">|</span>
+                    <span class="text-dark">@Model.StudentNumber</span>
+                    <span class="mx-2 text-secondary">|</span>
+                    <span class="text-secondary">@Model.ProgramName</span>
+                </div>
+            </div>
+
+            <div>
+                <button type="button"
+                        id="downloadTimetableBtn"
+                        class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                    Download PNG
+                </button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+            <div class="fw-semibold text-secondary">Legend:</div>
+
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:16px; height:16px; background-color:#eaf4ff; border:1px solid #b8d8ff; display:inline-block; border-radius:4px;"></span>
+                <span class="text-secondary">Normal Class</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:16px; height:16px; background-color:#ffe5e5; border:1px solid #dc3545; display:inline-block; border-radius:4px;"></span>
+                <span class="text-secondary">Clash Detected</span>
+            </div>
+        </div>
+
+        <div id="timetableCaptureArea" class="rounded-4 p-3 p-md-4" style="background-color:#ffffff; border:1px solid #edf2f7;">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle text-center mb-0" style="table-layout: fixed;">
+                    <thead>
+                        <tr style="background-color: #f3f8fb;">
+                            <th style="min-width: 90px;">Day</th>
+                            @foreach (var hour in timeSlots)
+                            {
+                                <th style="min-width: 95px;">@hour.ToString("00"):00</th>
+                            }
+                            <th style="min-width: 95px;">18:00</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var day in days)
+                        {
+                            <tr>
+                                <td class="fw-bold" style="background-color: #f8fbfd; color:#163a63;">
+                                    @GetDayShortName(day)
+                                </td>
+
+                                @foreach (var hour in timeSlots)
+                                {
+                                    var slotMeetings = displayedRecords
+                                        .SelectMany(r => r.CourseSection.Meetings.Select(m => new { Record = r, Meeting = m }))
+                                        .Where(x =>
+                                            x.Meeting.DayOfWeek == day &&
+                                            x.Meeting.StartTime.Hour <= hour &&
+                                            x.Meeting.EndTime.Hour > hour)
+                                        .ToList();
+
+                                    if (slotMeetings.Count > 1)
+                                    {
+                                        <td style="background-color: #ffe5e5; vertical-align: top; font-size: 0.82rem;">
+                                            @foreach (var item in slotMeetings)
+                                            {
+                                                <div class="mb-2 p-2 rounded-3 text-start border border-danger" style="background-color: #ffcccc;">
+                                                    <div class="fw-bold text-danger mb-1">
+                                                        @item.Record.CourseSection.Course.Code @item.Record.CourseSection.SectionCode
+                                                    </div>
+                                                    <div class="text-dark small mb-1">
+                                                        @item.Record.CourseSection.Course.Title
+                                                    </div>
+                                                    <div class="text-secondary small">
+                                                        @item.Meeting.Venue
+                                                    </div>
+                                                    <div class="text-secondary small">
+                                                        @FormatTimeRange(item.Meeting.StartTime, item.Meeting.EndTime)
+                                                    </div>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                    else if (slotMeetings.Count == 1)
+                                    {
+                                        var item = slotMeetings.First();
+                                        var isClashSlot = IsRecordInClash(item.Record);
+
+                                        <td style="background-color:@(isClashSlot ? "#fff4f4" : "#eaf4ff"); vertical-align: top; font-size: 0.82rem;">
+                                            <div class="p-2 rounded-3 text-start"
+                                                 style="border:1px solid @(isClashSlot ? "#dc3545" : "#cfe2ff"); background-color:@(isClashSlot ? "#ffe5e5" : "#f4f9ff");">
+                                                <div class="fw-bold mb-1" style="color:@(isClashSlot ? "#b42318" : "#163a63");">
+                                                    @item.Record.CourseSection.Course.Code @item.Record.CourseSection.SectionCode
+                                                </div>
+                                                <div class="text-dark small mb-1">
+                                                    @item.Record.CourseSection.Course.Title
+                                                </div>
+                                                <div class="text-secondary small">
+                                                    @item.Meeting.Venue
+                                                </div>
+                                                <div class="text-secondary small">
+                                                    @FormatTimeRange(item.Meeting.StartTime, item.Meeting.EndTime)
+                                                </div>
+                                            </div>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td style="background-color:#ffffff;"></td>
+                                    }
+                                }
+
+                                <td style="background-color:#ffffff;"></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const downloadBtn = document.getElementById("downloadTimetableBtn");
+
+        if (!downloadBtn) return;
+
+        downloadBtn.addEventListener("click", async function () {
+            const button = this;
+            const target = document.getElementById("timetableCaptureArea");
+
+            const originalText = button.innerText;
+            button.disabled = true;
+            button.innerText = "Generating...";
+
+            try {
+                const canvas = await html2canvas(target, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: "#ffffff"
+                });
+
+                const image = canvas.toDataURL("image/png");
+
+                const link = document.createElement("a");
+                link.href = image;
+                link.download = "class-timetable.png";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                button.innerText = "Downloaded";
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.disabled = false;
+                }, 1200);
+            } catch (error) {
+                console.error("PNG export failed:", error);
+                alert("Failed to export timetable as PNG.");
+                button.innerText = originalText;
+                button.disabled = false;
+            }
+        });
+    });
+</script>
