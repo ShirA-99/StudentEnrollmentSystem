@@ -1,0 +1,179 @@
+@model UserProfilePageViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<section class="portal-hero portal-hero-compact mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <span class="portal-eyebrow">Account settings</span>
+            <h1 class="h2 mb-1">@Model.DisplayName</h1>
+            <p class="text-secondary mb-1">@Model.EmailAddress</p>
+            <p class="text-secondary mb-0">User ID: @Model.UserId</p>
+        </div>
+        <div class="profile-summary-chips">
+            @if (!string.IsNullOrWhiteSpace(Model.StudentNumber))
+            {
+                <span class="portal-chip">@Model.StudentNumber</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.CurrentSemesterName))
+            {
+                <span class="portal-chip portal-chip-contrast">@Model.CurrentSemesterName</span>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="row g-4">
+    <div class="col-xl-4">
+        <div class="portal-surface h-100">
+            <span class="portal-eyebrow">Profile overview</span>
+            <div class="quick-facts">
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Program</span>
+                    <span class="quick-fact-value">@(Model.ProgramName ?? "Not available")</span>
+                </div>
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Intake</span>
+                    <span class="quick-fact-value">@(Model.IntakeLabel ?? "Not available")</span>
+                </div>
+                <div class="quick-fact">
+                    <span class="quick-fact-label">Saved bank account</span>
+                    <span class="quick-fact-value">@Model.BankAccountMask</span>
+                </div>
+            </div>
+            <div class="profile-nav mt-4">
+                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "profile" ? "active" : string.Empty)" href="#profile-details">Personal Information</a>
+                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "bank" ? "active" : string.Empty)" href="#bank-details">Bank Details</a>
+                <a class="btn btn-outline-primary w-100 @(Model.ActiveSection == "password" ? "active" : string.Empty)" href="#password-settings">Change Password</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="vstack gap-4">
+            <section id="profile-details" class="portal-surface profile-card">
+                <div class="mb-4">
+                    <span class="portal-eyebrow">Update profile</span>
+                    <h2 class="h4 mb-2">Personal information</h2>
+                    <p class="text-secondary mb-0">Keep your contact details current so the portal and academic office always have the latest information.</p>
+                </div>
+
+                <form asp-action="UpdateProfile" method="post" class="row g-3">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Profile.FullName" class="form-label"></label>
+                        <input asp-for="Profile.FullName" class="form-control" />
+                        <span asp-validation-for="Profile.FullName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Profile.Email" class="form-label"></label>
+                        <input asp-for="Profile.Email" class="form-control" />
+                        <span asp-validation-for="Profile.Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Profile.PhoneNumber" class="form-label"></label>
+                        <input asp-for="Profile.PhoneNumber" class="form-control" />
+                        <span asp-validation-for="Profile.PhoneNumber" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Profile.Address" class="form-label"></label>
+                        <input asp-for="Profile.Address" class="form-control" />
+                        <span asp-validation-for="Profile.Address" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Profile.Postcode" class="form-label"></label>
+                        <input asp-for="Profile.Postcode" class="form-control" />
+                        <span asp-validation-for="Profile.Postcode" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Profile.City" class="form-label"></label>
+                        <input asp-for="Profile.City" class="form-control" />
+                        <span asp-validation-for="Profile.City" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Profile.State" class="form-label"></label>
+                        <input asp-for="Profile.State" class="form-control" />
+                        <span asp-validation-for="Profile.State" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Profile.Country" class="form-label"></label>
+                        <input asp-for="Profile.Country" class="form-control" />
+                        <span asp-validation-for="Profile.Country" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">Save Profile</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="bank-details" class="portal-surface profile-card">
+                <div class="mb-4">
+                    <span class="portal-eyebrow">Update banking</span>
+                    <h2 class="h4 mb-2">Bank details</h2>
+                    <p class="text-secondary mb-0">Bank account data is stored securely and only the masked account number is shown back in the portal.</p>
+                </div>
+
+                <form asp-action="UpdateBankDetails" method="post" class="row g-3">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+                    <div class="col-md-6">
+                        <label asp-for="BankDetails.BankName" class="form-label"></label>
+                        <input asp-for="BankDetails.BankName" class="form-control" />
+                        <span asp-validation-for="BankDetails.BankName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="BankDetails.AccountHolderName" class="form-label"></label>
+                        <input asp-for="BankDetails.AccountHolderName" class="form-control" />
+                        <span asp-validation-for="BankDetails.AccountHolderName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="BankDetails.AccountNumber" class="form-label"></label>
+                        <input asp-for="BankDetails.AccountNumber" class="form-control" inputmode="numeric" />
+                        <span asp-validation-for="BankDetails.AccountNumber" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div class="small text-secondary">Current account on file: <span class="fw-semibold">@Model.BankAccountMask</span></div>
+                        <button type="submit" class="btn btn-primary">Save Bank Details</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="password-settings" class="portal-surface profile-card">
+                <div class="mb-4">
+                    <span class="portal-eyebrow">Security</span>
+                    <h2 class="h4 mb-2">Change password</h2>
+                    <p class="text-secondary mb-0">Use at least 8 characters with a lowercase letter, a number, and a symbol to match the portal password policy.</p>
+                </div>
+
+                <form asp-action="ChangePassword" method="post" class="row g-3">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+                    <div class="col-12">
+                        <label asp-for="Password.CurrentPassword" class="form-label"></label>
+                        <input asp-for="Password.CurrentPassword" class="form-control" />
+                        <span asp-validation-for="Password.CurrentPassword" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Password.NewPassword" class="form-label"></label>
+                        <input asp-for="Password.NewPassword" class="form-control" />
+                        <span asp-validation-for="Password.NewPassword" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Password.ConfirmPassword" class="form-label"></label>
+                        <input asp-for="Password.ConfirmPassword" class="form-control" />
+                        <span asp-validation-for="Password.ConfirmPassword" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
