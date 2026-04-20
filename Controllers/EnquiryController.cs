@@ -4,6 +4,7 @@ using StudentEnrollmentSystem.Data;
 using StudentEnrollmentSystem.Models;
 using StudentEnrollmentSystem.ViewModels;
 
+namespace StudentEnrollmentSystem.Controllers;
 
 public class EnquiryController : Controller
 {
@@ -19,9 +20,30 @@ public class EnquiryController : Controller
         return View();
     }
 
-    // Contact Us
     [HttpGet]
     public IActionResult ContactUs()
+    {
+        return View(new ContactUsMessage());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ContactUs(ContactUsMessage model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        model.SubmittedAt = DateTime.UtcNow;
+        _context.ContactUsMessages.Add(model);
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(ContactUsSuccess));
+    }
+
+    [HttpGet]
+    public IActionResult ContactUsSuccess()
     {
         return View();
     }
@@ -50,7 +72,6 @@ public class EnquiryController : Controller
             })
             .ToListAsync();
 
-        // Restore user selection
         foreach (var item in freshData)
         {
             var selected = model.AvailableSections
@@ -62,7 +83,6 @@ public class EnquiryController : Controller
         model.AvailableSections = freshData;
         model.HasChecked = true;
 
-        // Get selected items
         var selectedMeetings = model.AvailableSections
             .Where(x => x.IsSelected)
             .ToList();
@@ -73,7 +93,6 @@ public class EnquiryController : Controller
             return View(model);
         }
 
-        // Check clash
         for (int i = 0; i < selectedMeetings.Count; i++)
         {
             for (int j = i + 1; j < selectedMeetings.Count; j++)
@@ -95,7 +114,6 @@ public class EnquiryController : Controller
         return View(model);
     }
 
-    // Timetable Matching
     [HttpGet]
     public async Task<IActionResult> TimetableMatching()
     {
