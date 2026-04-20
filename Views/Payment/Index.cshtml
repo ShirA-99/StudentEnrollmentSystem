@@ -1,0 +1,206 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var student = ViewBag.Student;
+    var activeSemester = ViewBag.ActiveSemester as string ?? "Current Semester";
+}
+
+<!-- HERO -->
+<section class="portal-hero mb-4">
+    <div class="d-flex justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <span class="portal-eyebrow">Payment</span>
+            <h1 class="h2 mb-2">Course Fee Payment</h1>
+
+            <div class="text-secondary">
+                @student?.FullName |
+                @student?.StudentNumber |
+                @student?.Email |
+                @activeSemester
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ALERT -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
+
+<form asp-controller="Payment" asp-action="Pay" method="post">
+
+<section class="portal-surface">
+
+<!-- SUBJECT TABLE -->
+<div class="table-responsive">
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Select</th>
+                <th>Course Code</th>
+                <th>Course Name</th>
+                <th>Fee (RM)</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var c in ViewBag.Courses)
+            {
+                <tr>
+                    <td>
+                        <input type="checkbox"
+                               name="enrollmentIds"
+                               value="@c.EnrollmentId"
+                               data-fee="@c.Fee"
+                               class="course-checkbox" />
+                    </td>
+                    <td>@c.Code</td>
+                    <td>@c.Title</td>
+                    <td>@c.Fee</td>
+                </tr>
+            }
+
+            <tr class="fw-bold table-light">
+                <td colspan="3" class="text-end">TOTAL</td>
+                <td>RM <span id="totalAmount">0.00</span></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- PAYMENT METHOD -->
+<div class="mt-4">
+    <h5>Payment Method</h5>
+
+    <label><input type="radio" name="method" value="Card" checked onchange="switchPayment()"> 💳 Card</label><br>
+    <label><input type="radio" name="method" value="OnlineBanking" onchange="switchPayment()"> 🏦 Online Banking</label><br>
+    <label><input type="radio" name="method" value="TNG" onchange="switchPayment()"> 📱 TNG</label>
+</div>
+
+<!-- PAYMENT DETAILS -->
+<div class="mt-4">
+    <h5>Payment Details</h5>
+
+    <!-- CARD -->
+    <div id="cardDetails">
+        <input name="cardNumber" class="form-control mb-2" placeholder="Card Number" />
+        <input name="expiry" class="form-control mb-2" placeholder="MM/YY" />
+        <input name="cvv" class="form-control mb-2" placeholder="CVV" />
+        <input name="cardHolder" class="form-control" placeholder="Cardholder Name" />
+    </div>
+
+    <!-- BANK -->
+    <div id="bankDetails" style="display:none;">
+        <select name="bank" class="form-control">
+            <option>Maybank</option>
+            <option>CIMB</option>
+            <option>Public Bank</option>
+        </select>
+    </div>
+
+    <!-- TNG -->
+    <div id="tngDetails" style="display:none;">
+        <input name="tngPhone" class="form-control" placeholder="TNG Phone Number" />
+    </div>
+</div>
+
+<!-- BUTTON -->
+<div class="mt-4">
+    <button class="btn btn-primary w-100 py-3">
+        Pay RM <span id="payAmount">0.00</span>
+    </button>
+</div>
+
+</section>
+
+</form>
+
+<script>
+const checkboxes = document.querySelectorAll('.course-checkbox');
+const totalEl = document.getElementById('totalAmount');
+const payEl = document.getElementById('payAmount');
+
+function updateTotal() {
+    let total = 0;
+
+    checkboxes.forEach(cb => {
+        if (cb.checked) total += parseFloat(cb.dataset.fee);
+    });
+
+    totalEl.innerText = total.toFixed(2);
+    payEl.innerText = total.toFixed(2);
+}
+
+checkboxes.forEach(cb => cb.addEventListener('change', updateTotal));
+checkboxes.forEach(cb => cb.checked = true);
+updateTotal();
+
+function switchPayment() {
+    document.getElementById('cardDetails').style.display = 'none';
+    document.getElementById('bankDetails').style.display = 'none';
+    document.getElementById('tngDetails').style.display = 'none';
+
+    const method = document.querySelector('input[name="method"]:checked').value;
+
+    if (method === 'Card') document.getElementById('cardDetails').style.display = 'block';
+    if (method === 'OnlineBanking') document.getElementById('bankDetails').style.display = 'block';
+    if (method === 'TNG') document.getElementById('tngDetails').style.display = 'block';
+}
+
+document.querySelector("form").addEventListener("submit", function (e) {
+
+    let total = parseFloat(totalEl.innerText);
+    if (total === 0) {
+        e.preventDefault();
+        alert("Please select at least one course.");
+        return;
+    }
+
+    const method = document.querySelector('input[name="method"]:checked').value;
+
+    let valid = true;
+    let msg = "";
+
+    if (method === "Card") {
+        const cardNumber = document.querySelector('[name="cardNumber"]').value.trim();
+        const expiry = document.querySelector('[name="expiry"]').value.trim();
+        const cvv = document.querySelector('[name="cvv"]').value.trim();
+        const cardHolder = document.querySelector('[name="cardHolder"]').value.trim();
+
+        if (!cardNumber || !expiry || !cvv || !cardHolder) {
+            valid = false;
+            msg = "Please fill in all card details.";
+        }
+    }
+
+    else if (method === "OnlineBanking") {
+        const bank = document.querySelector('[name="bank"]').value;
+        if (!bank) {
+            valid = false;
+            msg = "Please select a bank.";
+        }
+    }
+
+    else if (method === "TNG") {
+        const phone = document.querySelector('[name="tngPhone"]').value.trim();
+        if (!phone) {
+            valid = false;
+            msg = "Please enter TNG phone number.";
+        }
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        alert(msg);
+    }
+});
+</script>

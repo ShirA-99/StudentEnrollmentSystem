@@ -21,4 +21,6 @@ public class Course
     public string EligibleProgrammeCodes { get; set; } = string.Empty;
 
     public ICollection<CourseSection> Sections { get; set; } = new List<CourseSection>();
+
+    public decimal Fee { get; set; }
 }
