@@ -30,6 +30,7 @@ public static class DbInitializer
                 existingCourse.Title = seed.Title;
                 existingCourse.CreditHours = seed.CreditHours;
                 existingCourse.EligibleProgrammeCodes = seed.EligibleProgrammeCodes;
+                existingCourse.Fee = seed.Fee;
             }
             else
             {
@@ -38,7 +39,8 @@ public static class DbInitializer
                     Code = seed.Code,
                     Title = seed.Title,
                     CreditHours = seed.CreditHours,
-                    EligibleProgrammeCodes = seed.EligibleProgrammeCodes
+                    EligibleProgrammeCodes = seed.EligibleProgrammeCodes,
+                    Fee = seed.Fee
                 });
             }
         }
@@ -675,7 +677,12 @@ public static class DbInitializer
         return new MeetingSeed(dayOfWeek, startHour, startMinute, endHour, endMinute, venue);
     }
 
-    private sealed record CourseSeed(string Code, string Title, int CreditHours, string EligibleProgrammeCodes);
+    private sealed record CourseSeed(
+        string Code,
+        string Title,
+        int CreditHours,
+        string EligibleProgrammeCodes,
+        decimal Fee);
 
     private sealed record SemesterSeed(
         string Code,
