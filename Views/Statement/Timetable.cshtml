@@ -96,18 +96,6 @@
         return clashRecords.Contains(record);
     }
 
-    string FormatDisplayTime(dynamic time)
-    {
-        try
-        {
-            return string.Format("{0:hh\\:mm}", time);
-        }
-        catch
-        {
-            return time?.ToString() ?? "";
-        }
-    }
-
     string FormatTimeRange(dynamic startTime, dynamic endTime)
     {
         try
