@@ -69,6 +69,12 @@
                             <li class="nav-item">
                                 <a class="@NavClass("Evaluation", "Create")" asp-controller="Evaluation" asp-action="Create">Evaluation</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("Payment", "Index")" asp-controller="Payment" asp-action="Index">Payment</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="@NavClass("Payment", "History")" asp-controller="Payment" asp-action="History">Payment History</a>
+                            </li>
                         }
                     </ul>
                     <partial name="_LoginPartial" />

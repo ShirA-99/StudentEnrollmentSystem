@@ -1,0 +1,71 @@
+@model List<StudentEnrollmentSystem.ViewModels.PaymentHistoryVM>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<section class="portal-hero mb-4">
+    <div>
+        <span class="portal-eyebrow">Payment</span>
+        <h1 class="h2 mb-2">Payment History</h1>
+    </div>
+</section>
+
+<section class="portal-surface">
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-warning">
+        No payment records found.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Amount (RM)</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td>@(p.PaidAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+
+                        <td>
+                            <strong>@p.CourseCode</strong><br />
+                            <small class="text-muted">@p.CourseTitle</small>
+                        </td>
+
+                        <td>
+                            <strong>RM @p.Amount</strong>
+                        </td>
+
+                        <td>@p.Method</td>
+
+                        <td>
+                            @if (p.Status == PaymentStatus.Succeeded)
+                            {
+                                <span class="badge bg-success">Paid</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Failed</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+    </div>
+}
+
+</section>
