@@ -1,198 +1,131 @@
 # Student Enrollment System
 
-ASP.NET Core MVC student system prepared as the shared base project for the whole team. The enrollment and add/drop module is already in place, and the other members can now build their own modules on top of the same project structure.
+`StudentEnrollmentSystem` is an ASP.NET Core MVC web application for managing a student self-service enrollment workflow.
 
-## Current System
+The app includes:
 
-- Student login with ASP.NET Identity
-- Course enrollment
-- Course add/drop
-- Add/drop history
-- SQL-backed student, semester, course, section, enrollment, and audit models
-- Seeded demo student accounts
-- Validation for duplicate enrollment, timetable clash, seat capacity, and course dropping
-- Automated xUnit tests for the enrollment and add/drop rules
+- student sign-in with ASP.NET Identity
+- semester dashboard with quick access to core pages
+- course enrollment
+- add / drop management
+- registration history
+- timetable and statement views
+- payment and payment history
+- enquiry and contact forms
+- teaching evaluation submission
+- student profile management
+- seeded demo data for local development
 
-## Demo Accounts
+## Tech Stack
+
+- .NET 10
+- ASP.NET Core MVC
+- Entity Framework Core
+- SQL Server / SQL Server LocalDB
+- xUnit for automated tests
+
+## Prerequisites
+
+Install these before running the app:
+
+- .NET 10 SDK
+- SQL Server LocalDB or SQL Server Express
+
+The project is configured for SQL Server LocalDB by default.
+
+## Default Database Configuration
+
+The default connection string in [appsettings.json](/abs/path/c:/Users/admin/StudentEnrollmentSystem/appsettings.json:1) is:
+
+```json
+"DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=StudentEnrollmentSystemDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+```
+
+If you want to use a different SQL Server instance, update `DefaultConnection` in:
+
+- [appsettings.json](/abs/path/c:/Users/admin/StudentEnrollmentSystem/appsettings.json:1)
+- `appsettings.Development.json` if you use one locally
+
+## Setup
+
+From the project root, run:
+
+```powershell
+dotnet restore
+dotnet build
+```
+
+The app applies EF Core migrations and seeds demo data automatically on startup.
+
+## Run The App
+
+Start the app with:
+
+```powershell
+dotnet run --project .\StudentEnrollmentSystem.csproj
+```
+
+By default, the app runs at:
+
+- `http://localhost:5187`
+- `https://localhost:7036`
+
+Launch settings are defined in [Properties/launchSettings.json](/abs/path/c:/Users/admin/StudentEnrollmentSystem/Properties/launchSettings.json:1).
+
+## Demo Student Accounts
+
+The seeded demo accounts are:
 
 - `alice@student.demo`
 - `bob@student.demo`
 - `chloe@student.demo`
-- Password for all accounts: `Pass123$`
+- `daniel@student.demo`
+- `farah@student.demo`
 
-## Team Branches
+Password for all demo accounts:
 
-The team branches have already been prepared from `main`.
-
-- `main` - shared base branch
-- `feature/enrollment-add-drop` - enrollment and add/drop
-- `feature/enquiry-evaluation` - enquiry and student evaluation
-- `feature/payment` - payment and payment history
-- `feature/account` - account management
-- `feature/statements` - statements
-
-Each member should work only in their assigned branch.
-
-## Before You Start
-
-If you have never used GitHub before, follow this order:
-
-1. Create a GitHub account: https://github.com/signup
-2. Install Git for Windows: https://git-scm.com/download/win
-3. Install the .NET 10 SDK: https://dotnet.microsoft.com/en-us/download/dotnet/10.0
-4. Install SQL Server LocalDB or SQL Server Express:
-   - SQL Server Express: https://www.microsoft.com/en-us/sql-server/sql-server-downloads
-5. Install Visual Studio Code if needed: https://code.visualstudio.com/
-6. Optional SQL extension for VS Code:
-   - SQL Server (mssql): https://marketplace.visualstudio.com/items?itemName=ms-mssql.mssql
-
-## Clone The Project
-
-Only do this once on your machine.
-
-```powershell
-git clone https://github.com/ShirA-99/StudentEnrollmentSystem.git
-cd StudentEnrollmentSystem
-```
-
-## Get Your Branch
-
-After cloning, switch to your assigned branch.
-
-Before you continue work on any feature branch, always bring in the latest `main` first so your branch stays up to date with the shared project.
-
-Examples:
-
-```powershell
-git fetch origin
-git checkout feature/enquiry-evaluation
-git checkout main
-git pull origin main
-git checkout feature/enquiry-evaluation
-git merge main
-```
-
-```powershell
-git fetch origin
-git checkout feature/payment
-git checkout main
-git pull origin main
-git checkout feature/payment
-git merge main
-```
-
-If Git tells you the branch does not exist locally yet, that is normal. `git checkout` will create the local copy from GitHub.
-
-## Project Structure
-
-
-Main working folders:
-
-- `Controllers` - one controller area per feature
-- `Views` - feature views
-- `Models` - shared entity models
-- `ViewModels` - UI-specific models
-- `Services` - business logic
-- `Data` - database context, seed data, and migrations
-- `wwwroot` - static assets
-- `StudentEnrollmentSystem.Tests` - automated tests
-
-Prepared member folders and placeholders:
-
-- `Controllers/EnrollmentController.cs`
-- `Controllers/AddDropController.cs`
-- `Controllers/EnquiryController.cs`
-- `Controllers/EvaluationController.cs`
-- `Controllers/PaymentController.cs`
-- `Controllers/StatementController.cs`
-- `Controllers/AccountController.cs`
-- `Views/Enrollment`
-- `Views/AddDrop`
-- `Views/Enquiry`
-- `Views/Evaluation`
-- `Views/Payment`
-- `Views/Statement`
-- `Views/Account`
-
-## Database Setup
-
-This project is configured for SQL Server LocalDB by default.
-
-Default connection string:
-
-`Server=(localdb)\MSSQLLocalDB;Database=StudentEnrollmentSystemDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True`
-
-If your machine uses SQL Server Express or another SQL Server instance instead, update `DefaultConnection` in:
-
-- `appsettings.json`
-- `appsettings.Development.json`
-
-The app applies migrations and seeds demo data automatically on startup.
-
-## First Run
-
-Run these commands from the repository root:
-
-```powershell
-dotnet restore
-dotnet build StudentEnrollmentSystem.slnx
-dotnet test StudentEnrollmentSystem.slnx
-dotnet run --project .\StudentEnrollmentSystem.csproj
-```
-
-If the app fails to start with a database connection error, check:
-
-- SQL Server LocalDB is installed
-- the `MSSQLLocalDB` instance exists
-- your connection string matches your SQL Server instance
-
-## Everyday Git Workflow
-
-Use this every time before starting or continuing work:
-
-```powershell
-git checkout main
-git pull origin main
-git checkout your-branch-name
-git merge main
-```
-
-Example:
-
-```powershell
-git checkout main
-git pull origin main
-git checkout feature/account
-git merge main
-```
-
-After making changes:
-
-```powershell
-git add .
-git commit -m "Describe your changes"
-git push
-```
-
-## When Your Module Is Ready
-
-1. Push your branch to GitHub.
-2. Open the GitHub repository in the browser.
-3. GitHub will usually show a button to create a Pull Request.
-4. Open the Pull Request into `main`.
-5. Wait for review before merging.
+- `Pass123$`
 
 ## Useful Commands
 
-- Build: `dotnet build StudentEnrollmentSystem.slnx`
-- Test: `dotnet test StudentEnrollmentSystem.slnx`
-- Run app: `dotnet run --project .\StudentEnrollmentSystem.csproj`
-- Add migration: `dotnet dotnet-ef migrations add <MigrationName> --project .\StudentEnrollmentSystem.csproj --startup-project .\StudentEnrollmentSystem.csproj --output-dir Data/Migrations`
+Build:
 
-## Notes For Team Members
+```powershell
+dotnet build
+```
 
-- Reuse the shared models and `ApplicationDbContext` instead of creating duplicate tables.
-- Keep your work inside your own controller and view folders as much as possible.
-- Do not commit directly into another member's branch.
-- Before continuing work in your branch, always pull the latest `main` and merge it into your branch first.
-- If you are unsure where your feature should go, start from the placeholder controller and matching view folder already prepared for you.
+Run tests:
+
+```powershell
+dotnet test
+```
+
+Run the app:
+
+```powershell
+dotnet run --project .\StudentEnrollmentSystem.csproj
+```
+
+Add a new migration:
+
+```powershell
+dotnet ef migrations add <MigrationName> --project .\StudentEnrollmentSystem.csproj --startup-project .\StudentEnrollmentSystem.csproj --output-dir Data/Migrations
+```
+
+## What The App Does
+
+After signing in, a student can use the dashboard to access the main self-service flows:
+
+- browse the enrollment catalog and register for available sections
+- add or drop classes with timetable and rule validation
+- review registration history and audit trail entries
+- view timetable and fee statement information
+- make payments and review payment history
+- submit enquiries and contact messages
+- submit teaching evaluations
+- manage profile and personal account details
+
+## Notes
+
+- The database is initialized on application startup through [Data/DbInitializer.cs](/abs/path/c:/Users/admin/StudentEnrollmentSystem/Data/DbInitializer.cs:1).
+- If startup fails with a SQL connection error, make sure your SQL Server / LocalDB instance is installed and matches the configured connection string.

@@ -1,6 +1,6 @@
 @model HomeIndexViewModel
 @{
-    ViewData["Title"] = "Portal Overview";
+    ViewData["Title"] = "Dashboard";
     var isSignedIn = User.Identity?.IsAuthenticated == true;
 }
 
@@ -24,15 +24,42 @@
                     <a class="btn btn-outline-primary btn-lg" href="#demo-accounts">View Demo Accounts</a>
                 }
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <span class="portal-chip">Semester-ready access</span>
-                <span class="portal-chip portal-chip-contrast">Malaysia campus wording</span>
-                <span class="portal-chip">Timetable-first journey</span>
-            </div>
             @if (!isSignedIn)
             {
                 <p class="text-secondary small mt-3 mb-0">Sign in first to access enrollment, add / drop, registration history, and your statement.</p>
             }
+            <div class="portal-hero-links mt-4">
+                <div class="portal-quick-links-header">
+                    <span class="portal-eyebrow mb-0">Quick access</span>
+                    <p class="text-secondary small mb-0">Open your main student pages directly from the dashboard.</p>
+                </div>
+                <div class="portal-quick-links-grid">
+                    <a class="portal-quick-link" asp-controller="Enrollment" asp-action="Index">
+                        <span class="portal-quick-link-title">Enrollment</span>
+                        <span class="portal-quick-link-copy">Sections and registration</span>
+                    </a>
+                    <a class="portal-quick-link" asp-controller="AddDrop" asp-action="Index">
+                        <span class="portal-quick-link-title">Add / Drop</span>
+                        <span class="portal-quick-link-copy">Manage timetable changes</span>
+                    </a>
+                    <a class="portal-quick-link" asp-controller="Statement" asp-action="Timetable">
+                        <span class="portal-quick-link-title">Timetable</span>
+                        <span class="portal-quick-link-copy">See current class schedule</span>
+                    </a>
+                    <a class="portal-quick-link" asp-controller="Statement" asp-action="Index">
+                        <span class="portal-quick-link-title">Statement</span>
+                        <span class="portal-quick-link-copy">Fees and registration summary</span>
+                    </a>
+                    <a class="portal-quick-link" asp-controller="Payment" asp-action="Index">
+                        <span class="portal-quick-link-title">Payment</span>
+                        <span class="portal-quick-link-copy">Pay outstanding course fees</span>
+                    </a>
+                    <a class="portal-quick-link" asp-controller="Enquiry" asp-action="Index">
+                        <span class="portal-quick-link-title">Enquiry</span>
+                        <span class="portal-quick-link-copy">Support and self-service help</span>
+                    </a>
+                </div>
+            </div>
         </div>
         <div class="col-xl-5">
             <div id="demo-accounts" class="portal-surface portal-demo-panel h-100 floating-accent" data-reveal="right" data-delay="120">
@@ -53,7 +80,6 @@
                         <span class="quick-fact-value">@Model.OpenSectionCount available for planning</span>
                     </div>
                 </div>
-                <p class="text-secondary mb-3">Use any seeded student account below when presenting the enrollment flow locally.</p>
                 <div class="vstack gap-2">
                     @foreach (var account in Model.DemoAccounts)
                     {
